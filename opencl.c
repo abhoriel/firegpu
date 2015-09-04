@@ -1,10 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#define CL_USE_DEPRECATED_OPENCL_2_0_APIS
+#define CL_USE_DEPRECATED_OPENCL_1_2_APIS
+
 #ifdef __APPLE__
 #include <OpenCL/opencl.h>
 #else
-#include <CL/cl.h>
+#include <CL/opencl.h>
 #endif
 #include "clerror.h"
 #include "log.h"
@@ -39,12 +42,12 @@ int openclInit(int desiredPlatform, int desiredDevice) {
 
 	// Create a command queue
 	// This invocation is now deprecated as of opencl 2.0, but seems to be all that works on OSX currently
-#ifdef __APPLE__
+//#ifdef __APPLE__
 	commandQueue = clCreateCommandQueue(context, deviceID, 0, &ret);
-#else
+//#else
 	// this one is ok though
-	commandQueue = clCreateCommandQueueWithProperties(context, deviceID, NULL, &ret);
-#endif
+//	commandQueue = clCreateCommandQueueWithProperties(context, deviceID, NULL, &ret);
+//#endif
 	if (commandQueue == NULL) {
 		plog(LOG_ERROR, "error creating opencl command queue: %s\n", openclGetError(ret));
 		return -1;
