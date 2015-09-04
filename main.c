@@ -12,15 +12,15 @@
 static char *loadSourceFile(const char *fn);
 
 static void usage() {
-    plog(LOG_ERROR, "Usage: firegpu\n");
+	plog(LOG_ERROR, "Usage: firegpu\n");
 }
 
 static const char *opt_string = "t:?";
 
 static const struct option long_opts[] = {
-    { "help", no_argument, NULL, 'h' },
-    { "verbose", no_argument, NULL, 'v' },
-    { NULL, no_argument, NULL, 0 }
+	{"help", no_argument, NULL, 'h'},
+	{"verbose", no_argument, NULL, 'v'},
+	{NULL, no_argument, NULL, 0}
 };
 
 int verbose = 0;
@@ -31,29 +31,29 @@ int main(int argc, char **argv) {
 	char *source = NULL;
 
 	(void)argc; (void)argv;	// avoid unused variable compiler warnings
-    int opt = 0;
-    int long_index;
-    opt = getopt_long(argc, argv, opt_string, long_opts, &long_index);
-    while(opt != -1) {
-        switch(opt) {
-            case 'v':
-                verbose = 1;
-                break;
-            case 'h':
-            case '?':
-                usage();
-                return EXIT_FAILURE;
-                break;
-            case 0:     /* long option without a short arg */
-                //if(strcmp("randomize", long_opts[long_index].name) == 0) {
-                //}
-                break;
-            default:
-                // not reached
-                break;
-        }
-        opt = getopt_long(argc, argv, opt_string, long_opts, &long_index);
-    }
+	int opt = 0;
+	int long_index;
+	opt = getopt_long(argc, argv, opt_string, long_opts, &long_index);
+	while(opt != -1) {
+		switch(opt) {
+			case 'v':
+				verbose = 1;
+				break;
+			case 'h':
+			case '?':
+				usage();
+				return EXIT_FAILURE;
+				break;
+			case 0:     /* long option without a short arg */
+				//if(strcmp("randomize", long_opts[long_index].name) == 0) {
+				//}
+				break;
+			default:
+				// not reached
+				break;
+		}
+		opt = getopt_long(argc, argv, opt_string, long_opts, &long_index);
+	}
 
 	
 
