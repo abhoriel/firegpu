@@ -201,10 +201,10 @@ static cl_device_id getDevice(unsigned int desiredPlatform, unsigned int desired
 // get platform info. returns string which must be free()'d
 static char *getPlatformInfo(cl_platform_id platformId, cl_platform_info name) {
 	char *value = NULL;
-	size_t size;
+	size_t size = 0;
 	// get size of profile char array
 	clGetPlatformInfo(platformId, name, 0, value, &size);
-	value = (char *)malloc(size);
+	value = malloc(size);
 	// get profile char array
 	clGetPlatformInfo(platformId, name, size, value, NULL);
 	return value;
@@ -230,10 +230,10 @@ static void printPlatformInfo(cl_platform_id platformId) {
 // get device info. returns string which must be free()'d
 static char *getDeviceInfo(cl_device_id deviceId, cl_device_info name) {
 	char *value = NULL;
-	size_t size;
+	size_t size = 0;
 	// get size of profile char array
 	clGetDeviceInfo(deviceId, name, 0, value, &size);
-	value = (char *)malloc(size);
+	value = malloc(size);
 	// get profile char array
 	clGetDeviceInfo(deviceId, name, size, value, NULL);
 	return value;
