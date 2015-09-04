@@ -20,6 +20,8 @@ static const char *opt_string = "t:?";
 static const struct option long_opts[] = {
 	{"help", no_argument, NULL, 'h'},
 	{"verbose", no_argument, NULL, 'v'},
+	{"platform", required_argument, NULL, 'p'},
+	{"device", required_argument, NULL, 'd'},
 	{NULL, no_argument, NULL, 0}
 };
 
@@ -30,6 +32,8 @@ int main(int argc, char **argv) {
 	char fn[] = "brotkernel.cl";
 	char *source = NULL;
 
+	int desiredPlatform = 0;
+	int desiredDevice = 0;
 	(void)argc; (void)argv;	// avoid unused variable compiler warnings
 	int opt = 0;
 	int long_index;
@@ -38,6 +42,12 @@ int main(int argc, char **argv) {
 		switch(opt) {
 			case 'v':
 				verbose = 1;
+				break;
+			case 'p':
+				desiredPlatform = atoi(optarg);
+				break;
+			case 'd':
+				desiredDevice = atoi(optarg);
 				break;
 			case 'h':
 			case '?':
@@ -62,7 +72,7 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
-	if (openclInit() != 0) {
+	if (openclInit(desiredPlatform, desiredDevice) != 0) {
 		plog(LOG_ERROR, "error initialising openCL\n");
 		return 1;
 	}

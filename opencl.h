@@ -1,7 +1,7 @@
 #ifndef OPENCL_H
 #define OPENCL_H
 
-int openclInit();
+int openclInit(int desiredPlatform, int desiredDevice);
 void openclFini();
 int openclBuildProgram(const char *source);
 void openclFiniProgram();

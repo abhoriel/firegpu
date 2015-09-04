@@ -22,10 +22,10 @@ static cl_kernel fractalKernel = NULL;
 static cl_kernel juliaKernel = NULL;
 static cl_device_id deviceID = NULL;
 
-int openclInit() {
+int openclInit(int desiredPlatform, int desiredDevice) {
 	cl_int ret;
 	
-	deviceID = getDevice(0, 0);
+	deviceID = getDevice(desiredPlatform, desiredDevice);
 	if (deviceID == NULL) {
 		return -1;
 	}
@@ -38,10 +38,13 @@ int openclInit() {
 	}
 
 	// Create a command queue
-	// This invocation is now deprecated as of opencl 2.0
-	//commandQueue = clCreateCommandQueue(context, deviceID, 0, &ret);
+	// This invocation is now deprecated as of opencl 2.0, but seems to be all that works on OSX currently
+#ifdef __APPLE__
+	commandQueue = clCreateCommandQueue(context, deviceID, 0, &ret);
+#else
 	// this one is ok though
 	commandQueue = clCreateCommandQueueWithProperties(context, deviceID, NULL, &ret);
+#endif
 	if (commandQueue == NULL) {
 		plog(LOG_ERROR, "error creating opencl command queue: %s\n", openclGetError(ret));
 		return -1;
@@ -152,7 +155,7 @@ static cl_device_id getDevice(unsigned int desiredPlatform, unsigned int desired
 	cl_uint devicesCount;
 	cl_uint platformCount;
 	clGetPlatformIDs(1, platformId, &platformCount);
-	plog(LOG_INFO, "total opencl platforms: %d\n", platformCount);
+	plog(LOG_VERBOSE, "total opencl platforms: %d\n", platformCount);
 	
 	if (platformCount < 1) {
 		plog(LOG_ERROR, "no opencl platforms available\n");
@@ -173,7 +176,7 @@ static cl_device_id getDevice(unsigned int desiredPlatform, unsigned int desired
 	
 	clGetDeviceIDs(platformId[platformNumber], CL_DEVICE_TYPE_ALL, max, 
 			deviceID, &devicesCount);
-	plog(LOG_INFO, "total opencl devices %d\n", devicesCount);
+	plog(LOG_VERBOSE, "total opencl devices %d\n", devicesCount);
 	
 	if (devicesCount < 1) {
 		plog(LOG_ERROR, "no opencl devices available on platform\n");

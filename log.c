@@ -15,9 +15,9 @@ void plog(int level, const char *format, ...) {
 		return;
 	}
 	va_start(args, format);
-	if (level == LOG_ERROR)
-		vfprintf(stderr, format, args); {
-		} else {
+	if (level == LOG_ERROR) {
+		vfprintf(stderr, format, args);
+	} else {
 		vfprintf(stdout, format, args);
 	}
 	va_end(args);
