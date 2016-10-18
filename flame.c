@@ -3,18 +3,39 @@
 #include "log.h"
 #include "flame.h"
 
-typedef struct {
+#define FLOAT float
 
+typedef struct {
+	int r, g, b;
+} Colour;
+
+typedef struct {
+	FLOAT a, b, c, d, e, f;
+	Colour col;
+} Affine;
+
+typedef struct {
+	char *name;
+	FLOAT weight;
+} Variations;
+
+typedef struct {
+	Affine *affines;
+	int nAffines;
+
+	FLOAT *histogram;
+	
 
 } Flame;
 
+Flame *flameInit() {
+	Flame *flame = malloc(sizeof(Flame));
+	
 
-typedef struct {
-	void (*fn)(float *, float *);	// too slow i think
+	return flame;
+}
 
-} Variation;
-
-int drawFlame(int w, int h) {
+int flameDraw(int w, int h) {
 	float *histogram = malloc(w * h * sizeof(float));
 	if (histogram == NULL) {
 		plog(LOG_ERROR, "drawFlame(): memory allocation failure\n");

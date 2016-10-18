@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include "opencl.h"
 #include "sdl.h"
+#include "rng.h"
 #include "log.h"
 
 
@@ -65,7 +66,9 @@ int main(int argc, char **argv) {
 		opt = getopt_long(argc, argv, opt_string, long_opts, &long_index);
 	}
 
-	
+	for (int i = 0; i < 25; i++) {
+		printf("%.9g\n", rngGenerateFloat(-1.f, 1.f));
+	}
 
 	if (sdlInit(w, h) != 0) {
 		plog(LOG_ERROR, "error initialising SDL\n");
@@ -107,7 +110,9 @@ static char *loadSourceFile(const char *fn) {
 	FILE *file;
 	char *source;
 	size_t size;
-	
+
+
+
 	// get file size
 	if (stat(fn, &fstats) == 0) {
 		size = fstats.st_size;
