@@ -1,10 +1,11 @@
 CC=gcc
 UNAME := $(shell uname)
-CPPFLAGS= -Wall -Wextra -Werror -g #-Wno-sign-compare
-LDFLAGS= -lSDL2
+CFLAGS= -Wall -Wextra -Werror -g $(shell sdl2-config --cflags) #-Wno-sign-compare
+LDFLAGS= $(shell sdl2-config --libs)
 
 # OSX uses a different link option
 ifeq ($(UNAME),Darwin)
+	CFLAGS += -I/usr/local/include
 	LDFLAGS += -framework OpenCL
 else
 	LDFLAGS += -l OpenCL

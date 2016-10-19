@@ -15,13 +15,13 @@ unsigned long MWC256(void) {
 
 /* choose random initial c<809430660 and 256 random 32-bit integers for Q[] */
 static unsigned long q = 123456789;
-static unsigned long c = 362436;
+static unsigned int c = 362436;
 
 void rngSeed(unsigned long seed) {
 	q = seed;
 }
 
-unsigned long rngGenerate32() {
+unsigned int rngGenerate32() {
 	unsigned long long a = 809430660LL;
 	q = a * q + c;
 	c = (q >> 32);

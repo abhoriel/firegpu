@@ -11,8 +11,13 @@ typedef struct {
 
 typedef struct {
 	FLOAT a, b, c, d, e, f;
+} Coefficients;
+
+typedef struct {
+	Coefficients main;
+	Coefficients final;
 	Colour col;
-} Affine;
+} Xform;
 
 typedef struct {
 	char *name;
@@ -20,18 +25,17 @@ typedef struct {
 } Variations;
 
 typedef struct {
-	Affine *affines;
-	int nAffines;
+	Xform *xforms;
+	int nXforms;
 
+	int w, int h;
 	FLOAT *histogram;
-	
-
 } Flame;
 
-Flame *flameInit() {
+Flame *flameInit(int w, int h) {
 	Flame *flame = malloc(sizeof(Flame));
-	
-
+	flame->w = w;
+	flame->h = h;
 	return flame;
 }
 

@@ -111,8 +111,6 @@ static char *loadSourceFile(const char *fn) {
 	char *source;
 	size_t size;
 
-
-
 	// get file size
 	if (stat(fn, &fstats) == 0) {
 		size = fstats.st_size;
