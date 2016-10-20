@@ -11,7 +11,7 @@ else
 	LDFLAGS += -l OpenCL
 endif
 	
-OBJ= main.o clerror.o sdl.o opencl.o flame.o rng.o log.o
+OBJ= main.o clerror.o sdl.o opencl.o flame.o xform.o variations.o rng.o log.o
 BIN=firegpu
 
 all: $(OBJ) $(BIN)
