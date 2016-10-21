@@ -3,6 +3,7 @@
 #include "log.h"
 #include "xform.h"
 #include "rng.h"
+#include "variation.h"
 #include "flame.h"
 
 // MUST be a power of 2
@@ -75,15 +76,19 @@ int flameGenerate(Flame *flame) {
 			// decide which xform to use
 			int xformIndex = xfd[rngGenerate32() & (XFORM_DISTRIBUTION_SIZE - 1)];
 			Xform *xform = &flame->xforms[xformIndex];
-			(void)x; (void)y;
 			// in opencl we can use fma here
 			float newx = x * xform->coMain.a + y * xform->coMain.b + xform->coMain.c;
 			float newy = x * xform->coMain.d + y * xform->coMain.e + xform->coMain.f;
-
 			
+			variationDo(xform, &newx, &newy);
 
 			x = newx;
 			y = newy;
+
+			if (j > 20) {
+				
+
+			}
 		}
 	}
 

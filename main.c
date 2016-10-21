@@ -66,9 +66,11 @@ int main(int argc, char **argv) {
 		opt = getopt_long(argc, argv, opt_string, long_opts, &long_index);
 	}
 
+	/*
 	for (int i = 0; i < 25; i++) {
 		printf("%.9g\n", rngGenerateFloat(-1.f, 1.f));
 	}
+	*/
 
 	if (sdlInit(w, h) != 0) {
 		plog(LOG_ERROR, "error initialising SDL\n");
