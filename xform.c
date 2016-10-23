@@ -17,6 +17,8 @@ Xform *xformCreate() {
 	memset(&xform->coMain, 0, sizeof(Coefficients));
 	memset(&xform->coFinal, 0, sizeof(Coefficients));
 
+	xform->hasFinal = 0;
+
 	xform->weight = 0.5;
 	xform->symmetry = 0;
 

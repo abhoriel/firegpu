@@ -11,13 +11,16 @@ typedef struct {
 	Coefficients coMain;
 	Coefficients coFinal;
 
+	int hasFinal;
+
 	int *vars;
 	FLOAT *varCoefficients;
 	int nVars;
 
 	FLOAT weight;
 	FLOAT symmetry;
-	int colourIndex;
+	FLOAT opacity;
+	FLOAT colour;
 } Xform;
 
 
