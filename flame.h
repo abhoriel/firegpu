@@ -2,6 +2,12 @@
 #define FLAME_H
 
 #include "firegpu.h"
+#include "palette.h"
+
+typedef struct {
+	Colour c;
+	float count;
+} Pixel;
 
 typedef struct {
 	Xform *xforms;
@@ -14,7 +20,8 @@ typedef struct {
 	FLOAT scale;
 	FLOAT rotate;
 	FLOAT vibrancy, gamma, hue;
-	FLOAT *histogram;
+	Palette *palette;
+	Pixel *pixels;
 } Flame;
 
 #endif

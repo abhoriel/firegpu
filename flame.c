@@ -1,43 +1,33 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
+#include <math.h>
 #include "log.h"
 #include "xform.h"
 #include "rng.h"
+#include "palette.h"
 #include "variation.h"
 #include "flame.h"
 
 // MUST be a power of 2
 #define XFORM_DISTRIBUTION_SIZE	4096
 
-typedef struct {
-	float r, g, b;
-} Colour;
-
-typedef struct {
-	Colour *colours;
-	int nColours;
-} Palette;
-
-typedef struct {
-	char *name;
-	FLOAT weight;
-} Variations;
-
-
 static int *createXformDistribution(Flame *flame);
-
+static int flameGetNSamples(Flame *flame);
 
 Flame *flameCreate() {
 	Flame *flame = malloc(sizeof(Flame));
 	flame->xforms = NULL;
 	flame->nXforms = 0;
-	flame->histogram = NULL;
+	flame->pixels = NULL;
+	flame->palette = paletteCreate();
 	return flame;
 }
 
 void flameDestroy(Flame *flame) {
-	if (flame->histogram != NULL) {
-		free(flame->histogram);
+	paletteDestroy(flame->palette);
+	if (flame->pixels != NULL) {
+		free(flame->pixels);
 	}
 	free(flame);
 }
@@ -59,18 +49,19 @@ Xform *flameCreateXform(Flame *flame) {
 
 
 int flameGenerate(Flame *flame) {
-	int nSamples = flame->w * flame->superSample * flame->h * flame->superSample;
-	float *histogram = malloc(nSamples * sizeof(float));
-	Colour *colours = malloc(nSamples * sizeof(Colour));
-	if ((histogram == NULL) || (colours == NULL)){
+	int nSamples = flameGetNSamples(flame);
+	//float *histogram = malloc(nSamples * sizeof(float));
+	//Colour *colours = malloc(nSamples * sizeof(Colour));
+	Pixel *pixels = malloc(nSamples * sizeof(Pixel));
+	if (pixels == NULL) {
 		plog(LOG_ERROR, "drawFlame(): memory allocation failure\n");
 		return -1;
 	}
 	for (int i = 0; i < nSamples; i++) {
-		histogram[i] = 0.f;
-		colours[i].r = 0.f;
-		colours[i].g = 0.f;
-		colours[i].b = 0.f;
+		pixels[i].count = 0.f;
+		pixels[i].c.r = 0.f;
+		pixels[i].c.g = 0.f;
+		pixels[i].c.b = 0.f;
 	}
 
 
@@ -104,21 +95,27 @@ int flameGenerate(Flame *flame) {
 			}
 
 			if (j > 0) {
-				int xi = (x + 1.f) * 0.5 * flame->w * flame->superSample;
-				int yi = (y + 1.f) * 0.5 * flame->h * flame->superSample;
-				Colour *colour = &colours[xi + (yi * flame->w * flame->superSample)];
-				if (histogram[xi + (yi * flame->w * flame->superSample)] == 0.f) {
-					//colour->r = xform->
+				int xi = (x + 1.f) * 0.5f * flame->w * flame->superSample;
+				int yi = (y + 1.f) * 0.5f * flame->h * flame->superSample;
+				if ((xi < 0) || (xi >= flame->w) || (yi < 0) || (yi >= flame->h)) {
+					continue;
 				}
-				histogram[xi + (yi * flame->w * flame->superSample)] += xform->opacity; 
+				Pixel *pixel = &pixels[xi + (yi * flame->w * flame->superSample)];
+				//Colour *colour = &pixels[xi + (yi * flame->w * flame->superSample)].c;
+				//if (histogram[xi + (yi * flame->w * flame->superSample)] == 0.f) {
+					//colour->r = xform->
+				//}
+				Colour temp;
+				paletteGetColour(flame->palette, xform->colour, &temp);
+				pixel->c.r = (pixel->c.r + temp.r) / 2.f;
+				pixel->c.g = (pixel->c.g + temp.g) / 2.f;
+				pixel->c.b = (pixel->c.b + temp.b) / 2.f;
+				pixel->count += xform->opacity; 
 			}
 		}
 	}
 
-	if (flame->histogram != NULL) {
-		free(flame->histogram);
-	}
-	flame->histogram = histogram;
+	flame->pixels = pixels;
 	return 0;
 }
 
@@ -126,8 +123,14 @@ static int *createXformDistribution(Flame *flame) {
 	int *xfd = malloc(sizeof(int) * XFORM_DISTRIBUTION_SIZE);
 	int xform = 0;
 	float offset = 0;
+	float total = 0;
+	
+	for (int i = 0; i < flame->nXforms; i++) {
+		total += flame->xforms[xform].weight;
+	}
+
 	for (int i = 0; i < XFORM_DISTRIBUTION_SIZE; i++) {
-		float p = ((float)i / XFORM_DISTRIBUTION_SIZE);
+		float p = ((float)i / (XFORM_DISTRIBUTION_SIZE * total));
 		if (((p - offset) > flame->xforms[xform].weight) && (xform < (flame->nXforms - 1))) {
 			xform++;
 			offset += p;
@@ -137,3 +140,30 @@ static int *createXformDistribution(Flame *flame) {
 	return xfd;
 }
 
+static int flameGetNSamples(Flame *flame) {
+	return flame->w * flame->superSample * flame->h * flame->superSample;
+}
+
+void flameTonemap(Flame *flame) {
+	assert(flame->pixels != NULL);
+	FLOAT max = 0;
+	int nSamples = flameGetNSamples(flame);
+	for (int i = 0; i < nSamples; i++) {
+		flame->pixels[i].count = log10f(flame->pixels[i].count);
+		if (flame->pixels[i].count > max) {
+			max = flame->pixels[i].count;
+		}
+	}
+	
+	for (int i = 0; i < nSamples; i++) {
+		flame->pixels[i].c.r *= powf(flame->pixels[i].count / max, 1.0f / flame->gamma);
+		flame->pixels[i].c.g *= powf(flame->pixels[i].count / max, 1.0f / flame->gamma);
+		flame->pixels[i].c.b *= powf(flame->pixels[i].count / max, 1.0f / flame->gamma);
+	}
+
+}
+
+void flameDownsample(Flame *flame) {
+	assert(flame->pixels != NULL);
+	
+}

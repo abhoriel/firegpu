@@ -12,7 +12,7 @@ Xform *xformCreate() {
 	xform->vars = NULL;
 	xform->varCoefficients = NULL;
 	xform->nVars = 0;
-	xform->colourIndex = 0;
+	xform->colour = 0;
 
 	memset(&xform->coMain, 0, sizeof(Coefficients));
 	memset(&xform->coFinal, 0, sizeof(Coefficients));
