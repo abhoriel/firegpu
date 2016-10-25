@@ -8,13 +8,20 @@ typedef struct {
 } Coefficients;
 
 typedef struct {
+	int var;
+	float weight;
+	float p1, p2, p3, p4;
+} XformVariation;
+
+typedef struct {
 	Coefficients coMain;
 	Coefficients coFinal;
 
 	int hasFinal;
 
-	int *vars;
-	FLOAT *varCoefficients;
+	//int *vars;
+	//FLOAT *varWeights;
+	XformVariation *vars;
 	int nVars;
 
 	FLOAT weight;
@@ -26,6 +33,6 @@ typedef struct {
 
 Xform *xformCreate();
 void xformDestroy(Xform *xform);
-void xformAddVariation(Xform *xform, int variation, FLOAT coefficient);
+void xformAddVariation(Xform *xform, int variation, FLOAT weight);
 
 #endif

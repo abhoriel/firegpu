@@ -10,17 +10,17 @@ Xform *xformCreate() {
 	}
 
 	xform->vars = NULL;
-	xform->varCoefficients = NULL;
 	xform->nVars = 0;
-	xform->colour = 0;
+
+	xform->colour = 0.f;
 
 	memset(&xform->coMain, 0, sizeof(Coefficients));
 	memset(&xform->coFinal, 0, sizeof(Coefficients));
 
 	xform->hasFinal = 0;
 
-	xform->weight = 0.5;
-	xform->symmetry = 0;
+	xform->weight = 0.5f;
+	xform->symmetry = 0.f;
 
 	return xform;
 }
@@ -29,21 +29,17 @@ void xformDestroy(Xform *xform) {
 	if (xform->vars != NULL) {
 		free(xform->vars);
 	}
-	if (xform->varCoefficients != NULL) {
-		free(xform->varCoefficients);
-	}
 	free(xform);
 }
 
-void xformAddVariation(Xform *xform, int variation, FLOAT coefficient) {
-	xform->vars = realloc(xform->vars, sizeof(int) * (xform->nVars + 1));
-	xform->varCoefficients = realloc(xform->varCoefficients, sizeof(int) * (xform->nVars + 1));
-	if ((xform->vars == NULL) || (xform->varCoefficients == NULL)) {
+void xformAddVariation(Xform *xform, int variation, FLOAT weight) {
+	xform->vars = realloc(xform->vars, sizeof(XformVariation) * (xform->nVars + 1));
+	if (xform->vars == NULL) {
 		plog(LOG_ERROR, "xformAddVariation: memory allocation failed\n");
 		return;
 	}
-	xform->vars[xform->nVars] = variation;
-	xform->varCoefficients[xform->nVars] = coefficient;
+	xform->vars[xform->nVars].var = variation;
+	xform->vars[xform->nVars].weight = weight;
 	xform->nVars++;
 }
 

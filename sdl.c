@@ -2,12 +2,15 @@
 #include <errno.h>
 
 #include "log.h"
+#include "flame.h"
+#include "xform.h"
+#include "palette.h"
 #include "opencl.h"
 #include "sdl.h"
 
 static void initFps();
 static float calculateFps();
-static void drawFractal(double *samples, int w, int h, int downSample);
+static void drawFractal(Flame *flame, int w, int h);
 
 static SDL_Window *window = NULL;
 static SDL_Renderer *renderer = NULL;
@@ -73,8 +76,32 @@ void sdlMain() {
 	int mouseY = 0;
 	int mustRecreateSamplesBuffer = 0;
 	int mustRecreateTexture = 0;
-	int superSample = 1;
+
+	Flame *flame = flameCreate();
+	flame->superSample = 1;
+	flame->w = width;
+	flame->h = height;
+	flame->iterations = 100; //?
+	flame->quality = 100;	// should probably be increased to a few thousand
+	flame->gamma = 2.f;
+	paletteAddColour(flame->palette, 0.f, 0.f, 1.f);
+	paletteAddColour(flame->palette, 1.f, 0.f, 1.f);
+	paletteAddColour(flame->palette, 1.f, 0.f, 0.f);
+	Xform *xform = flameCreateXform(flame);
+	xform->hasFinal = 0;
+	xform->weight = 0.5f;
+	xform->colour = 0.0f;
+	xform->opacity = 1.0f;
+	xform->symmetry = 0.0f;
+	xform->coMain.a = 1.0743f; 	
+	xform->coMain.b = 0.276938f;
+	xform->coMain.c = -0.229114f;
+	xform->coMain.d = -1.13321f;
+	xform->coMain.e = 1.31898;
+	xform->coMain.f = -0.07108f;
+	xformAddVariation(xform, 2, 1.0f);	// spherical
 	
+
 	while (!quit) {
 		/*
 		int ret = openclExecMandlebrot(width * nSamples, height * nSamples, scale / nSamples, topLeftX, topLeftY, limit, samples);
@@ -84,8 +111,9 @@ void sdlMain() {
 		}
 		*/
 
-		//drawFractal(samples, width, height, superSample);
-	
+		drawFractal(flame, width, height);
+		plog(LOG_INFO, "done\n");
+
 		SDL_UpdateTexture(texture, NULL, pixels, width * sizeof(Uint32));
 		//SDL_RenderClear(renderer);
 		SDL_RenderCopy(renderer, texture, NULL, NULL);
@@ -118,35 +146,35 @@ void sdlMain() {
 							quit = 1;
 							break;
 						case SDLK_1:
-							superSample = 1;
+							flame->superSample = 1;
 							mustRecreateSamplesBuffer = 1;
 							break;
 						case SDLK_2:
-							superSample = 2;
+							flame->superSample = 2;
 							mustRecreateSamplesBuffer = 1;
 							break;
 						case SDLK_3:
-							superSample = 3;
+							flame->superSample = 3;
 							mustRecreateSamplesBuffer = 1;
 							break;
 						case SDLK_4:
-							superSample = 4;
+							flame->superSample = 4;
 							mustRecreateSamplesBuffer = 1;
 							break;
 						case SDLK_5:
-							superSample = 5;
+							flame->superSample = 5;
 							mustRecreateSamplesBuffer = 1;
 							break;
 						case SDLK_6:
-							superSample = 6;
+							flame->superSample = 6;
 							mustRecreateSamplesBuffer = 1;
 							break;
 						case SDLK_7:
-							superSample = 7;
+							flame->superSample = 7;
 							mustRecreateSamplesBuffer = 1;
 							break;
 						case SDLK_8:
-							superSample = 8;
+							flame->superSample = 8;
 							mustRecreateSamplesBuffer = 1;
 							break;
 						case SDLK_r:
@@ -188,6 +216,7 @@ void sdlMain() {
 		}
 		
 		if (leftMouseButtonDown || rightMouseButtonDown) {
+			(void)mouseX; (void)mouseY;
 			/*
 			centreX += ((mouseX - width / 2) * scale) * 0.02;
 			centreY += ((mouseY - height / 2) * scale) * 0.02;
@@ -212,44 +241,27 @@ void sdlMain() {
 }
 
 
-static void drawFractal(double *samples, int w, int h, int nSamples, int normalise) {
+static void drawFractal(Flame *flame, int w, int h) {
+	/*
 	double *downSampled;
 	if (nSamples > 1) {
 		downSampled = downSample(samples, w, h, nSamples);
 	} else {
 		downSampled = samples;
 	}
+	*/
 	
-	// we must first get the minimum value in order to normalise
-	// the colours.
-	double min = 1;
-	if (normalise) {
-		for (int y = 0; y < h; ++y) {
-			for (int x = 0; x < w; ++x) {
-				if ((downSampled[(w * y) + x] < min))
-					min = downSampled[(w * y) + x];
-			}
-		}
-	}
+	flameGenerate(flame);
+	flameTonemap(flame);
+
 	for (int y = 0; y < h; ++y) {
 		for (int x = 0; x < w; ++x) {
-			// normalise the colours
-			double iter = downSampled[(w * y) + x];
-			if (min < 1) {
-				iter = (iter - min) * (1.0 / (1.0 - min));
-			}
-			
-			((Uint8 *)pixels)[(w * y * 4) + (x * 4) + 0] = (Uint8)(iter * 255);
-			((Uint8 *)pixels)[(w * y * 4) + (x * 4) + 1] = (Uint8)(iter * 255);
-			((Uint8 *)pixels)[(w * y * 4) + (x * 4) + 2] = (Uint8)(iter * 255);
-			((Uint8 *)pixels)[(w * y * 4) + (x * 4) + 3] = (Uint8)(iter * 255);
-			//Colour col = gradient.getColour(iter);
-			//pixels[(w * y) + (x)] = col.getargb();
+			Pixel *pixel = &flame->pixels[x + (y * flame->w)];
+			((Uint8 *)pixels)[(w * y * 4) + (x * 4) + 0] = (Uint8)(pixel->c.r * 255);
+			((Uint8 *)pixels)[(w * y * 4) + (x * 4) + 1] = (Uint8)(pixel->c.g * 255);
+			((Uint8 *)pixels)[(w * y * 4) + (x * 4) + 2] = (Uint8)(pixel->c.b * 255);
+			((Uint8 *)pixels)[(w * y * 4) + (x * 4) + 3] = (Uint8)(255);
 		}
-	}
-	
-	if (nSamples > 1) {
-		free(downSampled);
 	}
 }
 

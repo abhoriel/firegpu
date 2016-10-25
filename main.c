@@ -10,7 +10,7 @@
 #include "log.h"
 
 
-static char *loadSourceFile(const char *fn);
+//static char *loadSourceFile(const char *fn);
 
 static void usage() {
 	plog(LOG_ERROR, "Usage: firegpu\n");
@@ -77,6 +77,8 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
+	(void)source; (void)desiredDevice; (void)desiredPlatform; (void)fn;
+	/*
 	if (openclInit(desiredPlatform, desiredDevice) != 0) {
 		plog(LOG_ERROR, "error initialising openCL\n");
 		return 1;
@@ -91,20 +93,23 @@ int main(int argc, char **argv) {
 	if (ret != 0) {
 		return 1;
 	}
+	*/
 	
 	sdlMain();
-	
+
+	/*	
 	free(source);
 	
 	openclFiniProgram();
 	
 	openclFini();
-	
+	*/
 	sdlFini();
 
 	return 0;
 }
 
+#if 0
 // load openCL source file of filename fn into memory
 // caller is responsible for free()ing this memory
 static char *loadSourceFile(const char *fn) {
@@ -153,3 +158,4 @@ static char *loadSourceFile(const char *fn) {
 }
 
 
+#endif

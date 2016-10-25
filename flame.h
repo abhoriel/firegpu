@@ -2,6 +2,7 @@
 #define FLAME_H
 
 #include "firegpu.h"
+#include "xform.h"
 #include "palette.h"
 
 typedef struct {
@@ -23,6 +24,13 @@ typedef struct {
 	Palette *palette;
 	Pixel *pixels;
 } Flame;
+
+Flame *flameCreate();
+void flameDestroy(Flame *flame);
+Xform *flameCreateXform(Flame *flame);
+int flameGenerate(Flame *flame);
+void flameTonemap(Flame *flame);
+void flameDownsample(Flame *flame);
 
 #endif
 

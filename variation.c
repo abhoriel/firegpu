@@ -7,17 +7,17 @@
 
 typedef struct {
 	char *name;
-	void (*fn)(Xform *, VarData *);
+	void (*fn)(XformVariation *, VarData *);
 } Variation;
 
-static void linear(Xform *xform, VarData *vh);
-static void sinusoidal(Xform *xform, VarData *vh);
-
+static void linear(XformVariation *xv, VarData *vd);
+static void sinusoidal(XformVariation *xv, VarData *vd);
+static void spherical(XformVariation *xv, VarData *vd);
 
 Variation variations[] = {
 	{"linear", 			linear},
-	{"sinusoidal",		sinusoidal}
-	//{"spherical",		spherical},
+	{"sinusoidal",		sinusoidal},
+	{"spherical",		spherical}
 	//{"swirl",			swirl},
 	//{"horseshoe",		horseshoe},
 	//{"polar",			polar},
@@ -26,8 +26,6 @@ Variation variations[] = {
 	//{"disc",			disc},
 	//{"spiral",			spiral},
 	//{"hyperbolic",		hyperbolic}
-
-
 
 };
 
@@ -45,7 +43,9 @@ void variationDo(Xform *xform, FLOAT *x, FLOAT *y) {
 	vd.ny = 0.f;
 
 	for (int i = 0; i < xform->nVars; i++) {
-		variations[xform->vars[i]].fn(xform, &vd);
+		XformVariation *xv = &xform->vars[i];
+		variations[xv->var].fn(xv, &vd);
+		
 	}
 
 	*x = vd.nx;
@@ -68,16 +68,20 @@ void variationDo(Xform *xform, FLOAT *x, FLOAT *y) {
 }
 
 //static void linear(Xform *xform, FLOAT *x, FLOAT *y) {
-static void linear(Xform *xform, VarData *vd) {
-	(void)xform;
-	vd->nx += xform->weight * vd->ox;
-	vd->ny += xform->weight * vd->oy;
+static void linear(XformVariation *xv, VarData *vd) {
+	vd->nx += xv->weight * vd->ox;
+	vd->ny += xv->weight * vd->oy;
 }
 
-static void sinusoidal(Xform *xform, VarData *vd) {
-	(void)xform;
-	vd->nx += xform->weight * sinf(vd->ox);
-	vd->ny += xform->weight * sinf(vd->oy);
+static void sinusoidal(XformVariation *xv, VarData *vd) {
+	vd->nx += xv->weight * sinf(vd->ox);
+	vd->ny += xv->weight * sinf(vd->oy);
+}
+
+static void spherical(XformVariation *xv, VarData *vd) {
+	float a = xv->weight / (vd->ox * vd->ox + vd->oy * vd->oy + 0.00000000001f);
+	vd->nx += a * vd->ox;
+	vd->ny += a * vd->oy;
 }
 
 

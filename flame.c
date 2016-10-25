@@ -32,6 +32,7 @@ void flameDestroy(Flame *flame) {
 	free(flame);
 }
 
+// totally broken
 Xform *flameCreateXform(Flame *flame) {
 	Xform *xform = xformCreate();
 	if (xform == NULL) {
@@ -121,6 +122,8 @@ int flameGenerate(Flame *flame) {
 }
 
 static int *createXformDistribution(Flame *flame) {
+	assert(flame->nXforms > 0);
+
 	int *xfd = malloc(sizeof(int) * XFORM_DISTRIBUTION_SIZE);
 	int xform = 0;
 	float offset = 0;
@@ -172,3 +175,4 @@ void flameDownsample(Flame *flame) {
 	assert(flame->pixels != NULL);
 	
 }
+
