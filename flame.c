@@ -58,7 +58,7 @@ int flameGenerate(Flame *flame) {
 		return -1;
 	}
 	for (int i = 0; i < nSamples; i++) {
-		pixels[i].count = 0.f;
+		pixels[i].intensity = 0.f;
 		pixels[i].c.r = 0.f;
 		pixels[i].c.g = 0.f;
 		pixels[i].c.b = 0.f;
@@ -107,10 +107,11 @@ int flameGenerate(Flame *flame) {
 				//}
 				Colour temp;
 				paletteGetColour(flame->palette, xform->colour, &temp);
-				pixel->c.r = (pixel->c.r + temp.r) / 2.f;
-				pixel->c.g = (pixel->c.g + temp.g) / 2.f;
-				pixel->c.b = (pixel->c.b + temp.b) / 2.f;
-				pixel->count += xform->opacity; 
+				// we can use the count to do all these divides at the end
+				pixel->c.r += pixel->c.r * xform->opacity;
+				pixel->c.g += pixel->c.g * xform->opacity;
+				pixel->c.b += pixel->c.b * xform->opacity;
+				pixel->intensity += xform->opacity; 
 			}
 		}
 	}
@@ -149,18 +150,22 @@ void flameTonemap(Flame *flame) {
 	FLOAT max = 0;
 	int nSamples = flameGetNSamples(flame);
 	for (int i = 0; i < nSamples; i++) {
-		flame->pixels[i].count = log10f(flame->pixels[i].count);
-		if (flame->pixels[i].count > max) {
-			max = flame->pixels[i].count;
+		// divide by the intensity as we need the average colours here.
+		flame->pixels[i].c.r /= flame->pixels[i].intensity;
+		flame->pixels[i].c.g /= flame->pixels[i].intensity;
+		flame->pixels[i].c.b /= flame->pixels[i].intensity;
+		flame->pixels[i].intensity = log10f(flame->pixels[i].intensity);
+		if (flame->pixels[i].intensity > max) {
+			max = flame->pixels[i].intensity;
 		}
 	}
-	
 	for (int i = 0; i < nSamples; i++) {
-		flame->pixels[i].c.r *= powf(flame->pixels[i].count / max, 1.0f / flame->gamma);
-		flame->pixels[i].c.g *= powf(flame->pixels[i].count / max, 1.0f / flame->gamma);
-		flame->pixels[i].c.b *= powf(flame->pixels[i].count / max, 1.0f / flame->gamma);
+		// gamma adjustment
+		flame->pixels[i].intensity = powf(flame->pixels[i].intensity / max, 1.0f / flame->gamma);
+		flame->pixels[i].c.r *= flame->pixels[i].intensity;
+		flame->pixels[i].c.g *= flame->pixels[i].intensity;
+		flame->pixels[i].c.b *= flame->pixels[i].intensity;
 	}
-
 }
 
 void flameDownsample(Flame *flame) {

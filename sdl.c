@@ -7,8 +7,7 @@
 
 static void initFps();
 static float calculateFps();
-static double *downSample(double *samples, int w, int h, int nSamples);
-static void drawFractal(double *samples, int w, int h, int nSamples, int normalise);
+static void drawFractal(double *samples, int w, int h, int downSample);
 
 static SDL_Window *window = NULL;
 static SDL_Renderer *renderer = NULL;
@@ -62,6 +61,201 @@ void sdlFini() {
 	SDL_Quit();
 }
 
+void sdlMain() {
+	int quit = 0;
+	SDL_Event event;
+
+	initFps();
+	
+	int leftMouseButtonDown = 0;
+	int rightMouseButtonDown = 0;
+	int mouseX = 0;
+	int mouseY = 0;
+	int mustRecreateSamplesBuffer = 0;
+	int mustRecreateTexture = 0;
+	int superSample = 1;
+	
+	while (!quit) {
+		/*
+		int ret = openclExecMandlebrot(width * nSamples, height * nSamples, scale / nSamples, topLeftX, topLeftY, limit, samples);
+		if (ret != 0) {
+			plog(LOG_ERROR, "error executing opencl kernel\n");
+			return;
+		}
+		*/
+
+		//drawFractal(samples, width, height, superSample);
+	
+		SDL_UpdateTexture(texture, NULL, pixels, width * sizeof(Uint32));
+		//SDL_RenderClear(renderer);
+		SDL_RenderCopy(renderer, texture, NULL, NULL);
+		SDL_RenderPresent(renderer);
+		
+		while(SDL_PollEvent(&event)) {
+			switch (event.type) {
+				case SDL_QUIT:
+					quit = 1;
+					break;
+				case SDL_MOUSEBUTTONUP:
+					if (event.button.button == SDL_BUTTON_LEFT)
+						leftMouseButtonDown = 0;
+					if (event.button.button == SDL_BUTTON_RIGHT)
+						rightMouseButtonDown = 0;
+					break;
+				case SDL_MOUSEBUTTONDOWN:
+					if (event.button.button == SDL_BUTTON_LEFT)
+						leftMouseButtonDown = 1;
+					if (event.button.button == SDL_BUTTON_RIGHT)
+						rightMouseButtonDown = 1;
+					break;
+				case SDL_MOUSEMOTION:
+					mouseX = event.motion.x;
+					mouseY = event.motion.y;
+					break;
+				case SDL_KEYDOWN:
+					switch (event.key.keysym.sym) {
+						case SDLK_ESCAPE:
+							quit = 1;
+							break;
+						case SDLK_1:
+							superSample = 1;
+							mustRecreateSamplesBuffer = 1;
+							break;
+						case SDLK_2:
+							superSample = 2;
+							mustRecreateSamplesBuffer = 1;
+							break;
+						case SDLK_3:
+							superSample = 3;
+							mustRecreateSamplesBuffer = 1;
+							break;
+						case SDLK_4:
+							superSample = 4;
+							mustRecreateSamplesBuffer = 1;
+							break;
+						case SDLK_5:
+							superSample = 5;
+							mustRecreateSamplesBuffer = 1;
+							break;
+						case SDLK_6:
+							superSample = 6;
+							mustRecreateSamplesBuffer = 1;
+							break;
+						case SDLK_7:
+							superSample = 7;
+							mustRecreateSamplesBuffer = 1;
+							break;
+						case SDLK_8:
+							superSample = 8;
+							mustRecreateSamplesBuffer = 1;
+							break;
+						case SDLK_r:
+							break;
+						case SDLK_UP:
+							break;
+						case SDLK_DOWN:
+							break;
+						case SDLK_RIGHT:
+							break;
+						case SDLK_LEFT:
+							break;
+						case SDLK_n:
+							break;
+					}
+			}
+			if (event.type == SDL_WINDOWEVENT) {
+				switch (event.window.event) {
+					case SDL_WINDOWEVENT_RESIZED:
+						width = event.window.data1;
+						height = event.window.data2;
+						mustRecreateSamplesBuffer = 1;
+						mustRecreateTexture = 1;
+						break;
+				}
+			}
+		}
+		
+		if (mustRecreateSamplesBuffer) {
+			mustRecreateSamplesBuffer = 0;
+		}
+		if (mustRecreateTexture) {
+			SDL_DestroyTexture(texture);
+			texture = SDL_CreateTexture(renderer,
+				SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, width, height);
+			free(pixels);
+			pixels = (Uint32 *)malloc(sizeof(Uint32) * width * height);
+			mustRecreateTexture = 0;
+		}
+		
+		if (leftMouseButtonDown || rightMouseButtonDown) {
+			/*
+			centreX += ((mouseX - width / 2) * scale) * 0.02;
+			centreY += ((mouseY - height / 2) * scale) * 0.02;
+			if (leftMouseButtonDown) {
+				scale *= 0.99;
+			}
+			if (rightMouseButtonDown) {
+				scale /= 0.99;
+			}
+			*/
+		}
+		
+		//topLeftX = centreX - ((width * scale) / 2);
+		//topLeftY = centreY - ((height * scale) / 2);
+		
+		char title[64];
+		sprintf(title, "firegpu (fps: %.1f)", calculateFps());
+		SDL_SetWindowTitle(window, title);
+	}
+	
+	//free(samples);
+}
+
+
+static void drawFractal(double *samples, int w, int h, int nSamples, int normalise) {
+	double *downSampled;
+	if (nSamples > 1) {
+		downSampled = downSample(samples, w, h, nSamples);
+	} else {
+		downSampled = samples;
+	}
+	
+	// we must first get the minimum value in order to normalise
+	// the colours.
+	double min = 1;
+	if (normalise) {
+		for (int y = 0; y < h; ++y) {
+			for (int x = 0; x < w; ++x) {
+				if ((downSampled[(w * y) + x] < min))
+					min = downSampled[(w * y) + x];
+			}
+		}
+	}
+	for (int y = 0; y < h; ++y) {
+		for (int x = 0; x < w; ++x) {
+			// normalise the colours
+			double iter = downSampled[(w * y) + x];
+			if (min < 1) {
+				iter = (iter - min) * (1.0 / (1.0 - min));
+			}
+			
+			((Uint8 *)pixels)[(w * y * 4) + (x * 4) + 0] = (Uint8)(iter * 255);
+			((Uint8 *)pixels)[(w * y * 4) + (x * 4) + 1] = (Uint8)(iter * 255);
+			((Uint8 *)pixels)[(w * y * 4) + (x * 4) + 2] = (Uint8)(iter * 255);
+			((Uint8 *)pixels)[(w * y * 4) + (x * 4) + 3] = (Uint8)(iter * 255);
+			//Colour col = gradient.getColour(iter);
+			//pixels[(w * y) + (x)] = col.getargb();
+		}
+	}
+	
+	if (nSamples > 1) {
+		free(downSampled);
+	}
+}
+
+
+
+#if 0
 void sdlMain() {
 	int quit = 0;
 	SDL_Event event;
@@ -307,7 +501,7 @@ static double *downSample(double *samples, int w, int h, int nSamples) {
 	}
 	return downSampled;
 }
-
+#endif
 
 // This FPS code is from the SDL wiki
 

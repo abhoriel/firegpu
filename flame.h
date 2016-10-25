@@ -6,7 +6,7 @@
 
 typedef struct {
 	Colour c;
-	float count;
+	float intensity;
 } Pixel;
 
 typedef struct {
