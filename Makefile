@@ -1,6 +1,6 @@
 CC=gcc
 UNAME := $(shell uname)
-CFLAGS= -Wall -Wextra -Werror -g $(shell sdl2-config --cflags) #-Wno-sign-compare
+CFLAGS= -Wall -Wextra -Werror -g $(shell sdl2-config --cflags) -O2 -march=native  #-Wno-sign-compare
 LDFLAGS= $(shell sdl2-config --libs) -lm
 
 # OSX uses a different link option

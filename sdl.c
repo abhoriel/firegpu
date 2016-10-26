@@ -25,7 +25,7 @@ int sdlInit(int w, int h) {
 		return -1;
 	}
 	
-	window = SDL_CreateWindow("gpubrot", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, w, h, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+	window = SDL_CreateWindow("firegpu", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, w, h, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
 	if(window == NULL) {
 		plog(LOG_ERROR, "sdl window could not be created: %s\n", SDL_GetError());
 		return -1;
@@ -82,9 +82,9 @@ void sdlMain() {
 	flame->w = width;
 	flame->h = height;
 	flame->iterations = 100; //?
-	flame->quality = 100;	// should probably be increased to a few thousand
+	flame->quality = 1;	// should probably be increased to a few thousand
 	flame->gamma = 2.f;
-	paletteAddColour(flame->palette, 0.f, 0.f, 1.f);
+	paletteAddColour(flame->palette, 1.f, 1.f, 1.f);
 	paletteAddColour(flame->palette, 1.f, 0.f, 1.f);
 	paletteAddColour(flame->palette, 1.f, 0.f, 0.f);
 	Xform *xform = flameCreateXform(flame);
@@ -99,8 +99,8 @@ void sdlMain() {
 	xform->coMain.d = -1.13321f;
 	xform->coMain.e = 1.31898;
 	xform->coMain.f = -0.07108f;
-	xformAddVariation(xform, 2, 1.0f);	// spherical
-	
+	xformAddVariation(xform, 2, 0.9f);	// spherical
+	xformAddVariation(xform, 1, 0.1f);	// spherical
 
 	while (!quit) {
 		/*
@@ -238,6 +238,7 @@ void sdlMain() {
 	}
 	
 	//free(samples);
+	flameDestroy(flame);
 }
 
 

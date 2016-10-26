@@ -3,12 +3,7 @@
 #include "log.h"
 #include "xform.h"
 
-Xform *xformCreate() {
-	Xform *xform = malloc(sizeof(Xform));
-	if (xform == NULL) {
-		return NULL;
-	}
-
+void xformInit(Xform *xform) {
 	xform->vars = NULL;
 	xform->nVars = 0;
 
@@ -21,15 +16,12 @@ Xform *xformCreate() {
 
 	xform->weight = 0.5f;
 	xform->symmetry = 0.f;
-
-	return xform;
 }
 
-void xformDestroy(Xform *xform) {
+void xformFini(Xform *xform) {
 	if (xform->vars != NULL) {
 		free(xform->vars);
 	}
-	free(xform);
 }
 
 void xformAddVariation(Xform *xform, int variation, FLOAT weight) {

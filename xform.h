@@ -31,8 +31,8 @@ typedef struct {
 } Xform;
 
 
-Xform *xformCreate();
-void xformDestroy(Xform *xform);
+void xformInit(Xform *xform);
+void xformFini(Xform *xform);
 void xformAddVariation(Xform *xform, int variation, FLOAT weight);
 
 #endif

@@ -25,6 +25,12 @@ Flame *flameCreate() {
 }
 
 void flameDestroy(Flame *flame) {
+	for (int i = 0; i < flame->nXforms; i++) {
+		xformFini(&flame->xforms[i]);
+	}
+	if (flame->xforms != NULL) {
+		free(flame->xforms);
+	}
 	paletteDestroy(flame->palette);
 	if (flame->pixels != NULL) {
 		free(flame->pixels);
@@ -34,22 +40,25 @@ void flameDestroy(Flame *flame) {
 
 // totally broken
 Xform *flameCreateXform(Flame *flame) {
-	Xform *xform = xformCreate();
-	if (xform == NULL) {
-		return NULL;
-	}
 	flame->xforms = realloc(flame->xforms, sizeof(Xform) * (flame->nXforms + 1));
 	if (flame->xforms == NULL) {
 		plog(LOG_ERROR, "flameCreateXform(): memory allocation failed\n");
-		xformDestroy(xform);
 		return NULL;
 	}
+	Xform *xform = &flame->xforms[flame->nXforms];
+	xformInit(xform);
+
 	flame->nXforms++;
 	return xform;
 }
 
 
 int flameGenerate(Flame *flame) {
+	if (flame->pixels != NULL) {
+		free(flame->pixels);
+		flame->pixels = NULL;
+	}
+
 	int nSamples = flameGetNSamples(flame);
 	//float *histogram = malloc(nSamples * sizeof(float));
 	//Colour *colours = malloc(nSamples * sizeof(Colour));
@@ -67,7 +76,7 @@ int flameGenerate(Flame *flame) {
 
 
 	int *xfd = createXformDistribution(flame);
-	int quality = flame->quality * nSamples;
+	int quality = flame->quality * flame->w * flame->h;
 	for (int sample = 0; sample < quality; sample++) {
 		float x = rngGenerateFloat(-1.f, 1.f);
 		float y = rngGenerateFloat(-1.f, 1.f);
@@ -109,14 +118,16 @@ int flameGenerate(Flame *flame) {
 				Colour temp;
 				paletteGetColour(flame->palette, xform->colour, &temp);
 				// we can use the count to do all these divides at the end
-				pixel->c.r += pixel->c.r * xform->opacity;
-				pixel->c.g += pixel->c.g * xform->opacity;
-				pixel->c.b += pixel->c.b * xform->opacity;
+				pixel->c.r += temp.r * xform->opacity;
+				pixel->c.g += temp.g * xform->opacity;
+				pixel->c.b += temp.b * xform->opacity;
+
 				pixel->intensity += xform->opacity; 
 			}
 		}
 	}
 
+	free(xfd);
 	flame->pixels = pixels;
 	return 0;
 }
