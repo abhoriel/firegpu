@@ -106,7 +106,7 @@ int flameGenerate(Flame *flame) {
 			if (j > 0) {
 				int xi = (x + 1.f) * 0.5f * flame->w * flame->supersample;
 				int yi = (y + 1.f) * 0.5f * flame->h * flame->supersample;
-				if ((xi < 0) || (xi >= flame->w) || (yi < 0) || (yi >= flame->h)) {
+				if ((xi < 0) || (xi >= (flame->w * flame->supersample)) || (yi < 0) || (yi >= (flame->h * flame->supersample))) {
 					continue;
 				}
 				Pixel *pixel = &pixels[xi + (yi * flame->w * flame->supersample)];
@@ -160,6 +160,44 @@ static int flameGetNSamples(Flame *flame) {
 void flameTonemap(Flame *flame) {
 	assert(flame->pixels != NULL);
 	FLOAT max = 0;
+
+	for (int y = 0; y < (flame->h * flame->supersample); y++) {
+		for (int x = 0; x < (flame->w * flame->supersample); x++) {
+			// the multiply by supersample is to skip over supersamples we 
+			// dont care about anymore, as flameDownsample should already
+			// have been called
+			Pixel *pixel = &flame->pixels[y * flame->w * flame->supersample + x];
+			// divide by the intensity as we need the average colours here.
+			if (pixel->intensity != 0) {
+				pixel->c.r /= pixel->intensity;
+				pixel->c.g /= pixel->intensity;
+				pixel->c.b /= pixel->intensity;
+				pixel->intensity = log10f(pixel->intensity);
+				if (pixel->intensity > max) {
+					max = pixel->intensity;
+				}
+			}
+		}
+	}
+
+	for (int y = 0; y < (flame->h * flame->supersample); y++) {
+		for (int x = 0; x < (flame->w * flame->supersample); x++) {
+			// gamma adjustment
+			Pixel *pixel = &flame->pixels[y * flame->w * flame->supersample + x];
+			pixel->intensity = powf(pixel->intensity / max, 1.0f / flame->gamma);
+			pixel->c.r *= pixel->intensity;
+			pixel->c.g *= pixel->intensity;
+			pixel->c.b *= pixel->intensity;
+		}
+	}
+
+}
+
+
+#if 0
+void flameTonemap(Flame *flame) {
+	assert(flame->pixels != NULL);
+	FLOAT max = 0;
 	int nSamples = flameGetNSamples(flame);
 	for (int i = 0; i < nSamples; i++) {
 		// divide by the intensity as we need the average colours here.
@@ -179,6 +217,7 @@ void flameTonemap(Flame *flame) {
 		flame->pixels[i].c.b *= flame->pixels[i].intensity;
 	}
 }
+#endif
 
 // this function is destructive, in that it reuses the same pixel buffer
 void flameDownsample(Flame *flame) {
@@ -193,19 +232,58 @@ void flameDownsample(Flame *flame) {
 			total.b = 0.f;
 			for (int yss = 0; yss < supersample; yss++) {
 				for (int xss = 0; xss < supersample; xss++) {
-					Pixel *pixel = &flame->pixels[(y * supersample * flame->w) + (x * supersample) + (yss * flame->w) + xss];
+					//Pixel *pixel = &flame->pixels[((y * supersample * flame->w) + (x * supersample) + (yss * flame->w) + xss];
+					//Pixel *pixel = &flame->pixels[((y * supersample) + yss) * supersample * flame->w + x * supersample + xss];
+					Pixel *pixel = &flame->pixels[((y * supersample) + yss) * supersample * flame->w + x * supersample + xss];
 					totalIntensity += pixel->intensity;
 					total.r += pixel->c.r;
 					total.g += pixel->c.g;
 					total.b += pixel->c.b;
 				}
 			}
-			Pixel *pixel = &flame->pixels[(y * flame->w) + x];
-			pixel->intensity = totalIntensity / (supersample * supersample);
+			Pixel *pixel = &flame->pixels[(y * flame->w * supersample) + x];
+			pixel->intensity = totalIntensity;
 			pixel->c.r = total.r / (supersample * supersample);
 			pixel->c.g = total.g / (supersample * supersample);
 			pixel->c.b = total.b / (supersample * supersample);
 		}
 	} 
 }
+
+void flameRandomise(Flame *flame) {
+	for (int i = 0; i < flame->nXforms; i++) {
+		xformFini(&flame->xforms[i]);
+	}
+	flame->nXforms = 0;
+	if (flame->xforms != NULL) {
+		free(flame->xforms);
+	}
+	
+	int nXforms = rngGenerate32() % 6;
+	for (int i = 0; i < nXforms; i++) {
+		Xform *xform = flameCreateXform(flame);
+		xform->hasFinal = 0;
+		xform->weight = 0.951f;
+		xform->colour = 0.0f;
+		xform->opacity = 1.0f;
+		xform->symmetry = 0.0f;
+		xform->coMain.a = 1.0743f; 	
+		xform->coMain.b = 0.276938f;
+		xform->coMain.c = -0.229114f;
+		xform->coMain.d = -1.13321f;
+		xform->coMain.e = 1.31898;
+		xform->coMain.f = -0.07108f;
+		xformAddVariation(xform, 2, 1.0f);	// spherical
+
+	}
+
+}
+
+
+//y * width * supersample * supersample + x * supersample
+
+//+ yss * width * supersample
+
+//+ xss
+
 

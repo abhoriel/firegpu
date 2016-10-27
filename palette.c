@@ -25,7 +25,6 @@ void paletteAddColour(Palette *palette, float r, float g, float b) {
 	palette->nColours++;
 }
 
-
 void paletteGetColour(Palette *palette, float d, Colour *colour) {
 	assert(d >= 0.f);
 	assert(d <= 1.f);

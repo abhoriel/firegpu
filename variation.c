@@ -47,6 +47,7 @@ void variationDo(Xform *xform, FLOAT *x, FLOAT *y) {
 		// this way is probably more efficient but i cant be bothered
 		// I guess it depends on the compiler and instruction cache		
 		switch (xv->var) {
+			default:
 			case 0:
 				linear(xv, &vd);
 				break;
@@ -56,8 +57,6 @@ void variationDo(Xform *xform, FLOAT *x, FLOAT *y) {
 			case 2: 
 				spherical(xv, &vd);
 				break;
-			default:
-				plog(LOG_ERROR, "unknown variation %d\n", i);
 		}
 		
 	}

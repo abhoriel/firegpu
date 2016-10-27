@@ -82,7 +82,7 @@ void sdlMain() {
 	flame->w = width;
 	flame->h = height;
 	flame->iterations = 10; //?
-	flame->quality = 10;	// should probably be increased to a few thousand
+	flame->quality = 100;	// should probably be increased to a few thousand
 	flame->gamma = 2.0f;
 	paletteAddColour(flame->palette, 0.f, 0.f, 1.f);
 	paletteAddColour(flame->palette, 1.f, 0.f, 1.f);
@@ -269,15 +269,14 @@ static void drawFractal(Flame *flame, int w, int h) {
 	*/
 	
 	flameGenerate(flame);
+	flameTonemap(flame);
 	if (flame->supersample > 1) {
 		flameDownsample(flame);
 	}
 
-	flameTonemap(flame);
-
-	for (int y = 0; y < h; ++y) {
-		for (int x = 0; x < w; ++x) {
-			Pixel *pixel = &flame->pixels[x + (y * flame->w)];
+	for (int y = 0; y < h; y++) {
+		for (int x = 0; x < w; x++) {
+			Pixel *pixel = &flame->pixels[(y * flame->w * flame->supersample) + x];
 			((Uint8 *)pixels)[(w * y * 4) + (x * 4) + 0] = (Uint8)(pixel->c.b * 255);
 			((Uint8 *)pixels)[(w * y * 4) + (x * 4) + 1] = (Uint8)(pixel->c.g * 255);
 			((Uint8 *)pixels)[(w * y * 4) + (x * 4) + 2] = (Uint8)(pixel->c.r * 255);
