@@ -28,7 +28,7 @@ void paletteAddColour(Palette *palette, float r, float g, float b) {
 void paletteGetColour(Palette *palette, float d, Colour *colour) {
 	assert(d >= 0.f);
 	assert(d <= 1.f);
-	float scaled = d * palette->nColours;
+	float scaled = d * (palette->nColours - 1);
 	int i1 = floorf(scaled);
 	int i2 = ceilf(scaled);
 	float delta = scaled - floorf(scaled);

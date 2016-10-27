@@ -3,6 +3,7 @@
 #include <string.h>
 #include <getopt.h>
 #include <errno.h>
+#include <time.h>
 #include <sys/stat.h>
 #include "opencl.h"
 #include "sdl.h"
@@ -71,6 +72,10 @@ int main(int argc, char **argv) {
 		printf("%.9g\n", rngGenerateFloat(-1.f, 1.f));
 	}
 	*/
+
+	long seed = time(NULL);
+	plog(LOG_INFO, "rng seed: %ld\n", seed);
+	rngSeed(seed);	
 
 	if (sdlInit(w, h) != 0) {
 		plog(LOG_ERROR, "error initialising SDL\n");

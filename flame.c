@@ -194,31 +194,6 @@ void flameTonemap(Flame *flame) {
 }
 
 
-#if 0
-void flameTonemap(Flame *flame) {
-	assert(flame->pixels != NULL);
-	FLOAT max = 0;
-	int nSamples = flameGetNSamples(flame);
-	for (int i = 0; i < nSamples; i++) {
-		// divide by the intensity as we need the average colours here.
-		flame->pixels[i].c.r /= flame->pixels[i].intensity;
-		flame->pixels[i].c.g /= flame->pixels[i].intensity;
-		flame->pixels[i].c.b /= flame->pixels[i].intensity;
-		flame->pixels[i].intensity = log10f(flame->pixels[i].intensity);
-		if (flame->pixels[i].intensity > max) {
-			max = flame->pixels[i].intensity;
-		}
-	}
-	for (int i = 0; i < nSamples; i++) {
-		// gamma adjustment
-		flame->pixels[i].intensity = powf(flame->pixels[i].intensity / max, 1.0f / flame->gamma);
-		flame->pixels[i].c.r *= flame->pixels[i].intensity;
-		flame->pixels[i].c.g *= flame->pixels[i].intensity;
-		flame->pixels[i].c.b *= flame->pixels[i].intensity;
-	}
-}
-#endif
-
 // this function is destructive, in that it reuses the same pixel buffer
 void flameDownsample(Flame *flame) {
 	int supersample = flame->supersample;
@@ -258,32 +233,35 @@ void flameRandomise(Flame *flame) {
 	if (flame->xforms != NULL) {
 		free(flame->xforms);
 	}
+	flame->xforms = NULL;
 	
-	int nXforms = rngGenerate32() % 6;
+	int nXforms = (rngGenerate32() % 5) + 1;
+	plog(LOG_INFO, "\n\nnew fractal:\n");
 	for (int i = 0; i < nXforms; i++) {
 		Xform *xform = flameCreateXform(flame);
 		xform->hasFinal = 0;
-		xform->weight = 0.951f;
-		xform->colour = 0.0f;
+		xform->weight = rngGenerateFloat(0.f, 1.f);
+		xform->colour = rngGenerateFloat(0.f, 1.f);
 		xform->opacity = 1.0f;
 		xform->symmetry = 0.0f;
-		xform->coMain.a = 1.0743f; 	
-		xform->coMain.b = 0.276938f;
-		xform->coMain.c = -0.229114f;
-		xform->coMain.d = -1.13321f;
-		xform->coMain.e = 1.31898;
-		xform->coMain.f = -0.07108f;
-		xformAddVariation(xform, 2, 1.0f);	// spherical
-
+		xform->coMain.a = rngGenerateFloat(-1.f, 1.f); 
+		xform->coMain.b = rngGenerateFloat(-1.f, 1.f); 
+		xform->coMain.c = rngGenerateFloat(-1.f, 1.f); 
+		xform->coMain.d = rngGenerateFloat(-1.f, 1.f); 
+		xform->coMain.e = rngGenerateFloat(-1.f, 1.f); 
+		xform->coMain.f = rngGenerateFloat(-1.f, 1.f); 
+		plog(LOG_INFO, "new xform: weight %f, colour %f, a %.9g, b %.9g, c %.9g, d %.9g, e %.9g, f %.9g\n", xform->weight, xform->colour, xform->coMain.a, xform->coMain.b, xform->coMain.c, xform->coMain.d, xform->coMain.e, xform->coMain.f);
+		int nVars = (rngGenerate32() % 3) + 1;
+		float total = 0.f;
+		for (int j = 0; j < nVars; j++) {
+			int var = rngGenerate32() % 3;
+			float weight = rngGenerateFloat(0.0f, 1.f - total);
+			total += weight;
+			xformAddVariation(xform, var, weight);
+			plog(LOG_INFO, "\tnew variation: %d, weight %f\n", var, weight);
+		}
 	}
 
 }
-
-
-//y * width * supersample * supersample + x * supersample
-
-//+ yss * width * supersample
-
-//+ xss
 
 

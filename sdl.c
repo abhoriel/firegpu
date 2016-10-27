@@ -82,7 +82,7 @@ void sdlMain() {
 	flame->w = width;
 	flame->h = height;
 	flame->iterations = 10; //?
-	flame->quality = 100;	// should probably be increased to a few thousand
+	flame->quality = 10;	// should probably be increased to a few thousand
 	flame->gamma = 2.0f;
 	paletteAddColour(flame->palette, 0.f, 0.f, 1.f);
 	paletteAddColour(flame->palette, 1.f, 0.f, 1.f);
@@ -159,6 +159,9 @@ void sdlMain() {
 						case SDLK_ESCAPE:
 							quit = 1;
 							break;
+						case SDLK_RETURN:
+							flameRandomise(flame);
+							break;
 						case SDLK_1:
 							flame->supersample = 1;
 							mustRecreateSamplesBuffer = 1;
@@ -194,13 +197,28 @@ void sdlMain() {
 						case SDLK_r:
 							break;
 						case SDLK_UP:
+							flame->quality *= 5;
+							plog(LOG_INFO, "quality: %d\n", flame->quality);
 							break;
 						case SDLK_DOWN:
+							flame->quality /= 5;
+							plog(LOG_INFO, "quality: %d\n", flame->quality);
 							break;
 						case SDLK_RIGHT:
+							flame->iterations *= 5;
+							plog(LOG_INFO, "iterations: %d\n", flame->iterations);
 							break;
 						case SDLK_LEFT:
+							flame->iterations /= 5;
+							plog(LOG_INFO, "iterations: %d\n", flame->iterations);
 							break;
+						case SDLK_q:
+							flame->gamma += 1.f;
+							plog(LOG_INFO, "gamma: %f\n", flame->gamma);
+							break;
+						case SDLK_a:
+							flame->gamma -= 1.f;
+							plog(LOG_INFO, "gamma: %f\n", flame->gamma);
 						case SDLK_n:
 							break;
 					}

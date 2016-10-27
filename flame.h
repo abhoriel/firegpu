@@ -31,6 +31,7 @@ Xform *flameCreateXform(Flame *flame);
 int flameGenerate(Flame *flame);
 void flameTonemap(Flame *flame);
 void flameDownsample(Flame *flame);
+void flameRandomise(Flame *flame);
 
 #endif
 
