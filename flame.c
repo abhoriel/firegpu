@@ -77,6 +77,12 @@ int flameGenerate(Flame *flame) {
 	int *xfd = createXformDistribution(flame);
 	int quality = flame->quality * flame->w * flame->h;
 	for (int sample = 0; sample < quality; sample++) {
+
+		if (sample % 10000) {
+			plog(LOG_INFO, "\rprogress %f%%...", 100.f * (float)sample / quality);
+
+		}
+
 		float x = rngGenerateFloat(-1.f, 1.f);
 		float y = rngGenerateFloat(-1.f, 1.f);
 		//float colour = rngGenerateFloat(0.f, 1.f);
@@ -103,6 +109,7 @@ int flameGenerate(Flame *flame) {
 				y = newy;
 			}
 
+
 			if (j > 0) {
 				int xi = (x + 1.f) * 0.5f * flame->w * flame->supersample;
 				int yi = (y + 1.f) * 0.5f * flame->h * flame->supersample;
@@ -126,6 +133,7 @@ int flameGenerate(Flame *flame) {
 		}
 	}
 
+	plog(LOG_INFO, "\n");
 	free(xfd);
 	flame->pixels = pixels;
 	return 0;
