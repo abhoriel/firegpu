@@ -26,7 +26,6 @@ Variation variations[] = {
 	//{"disc",			disc},
 	//{"spiral",			spiral},
 	//{"hyperbolic",		hyperbolic}
-
 };
 
 
@@ -66,11 +65,8 @@ void variationDo(Xform *xform, FLOAT *x, FLOAT *y) {
 	*x = vd.nx;
 	*y = vd.ny;
 
-
-
 }
 
-//static void linear(Xform *xform, FLOAT *x, FLOAT *y) {
 static inline void linear(XformVariation *xv, VarData *vd) {
 	vd->nx += xv->weight * vd->ox;
 	vd->ny += xv->weight * vd->oy;

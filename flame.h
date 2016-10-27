@@ -13,7 +13,7 @@ typedef struct {
 typedef struct {
 	Xform *xforms;
 	int nXforms;
-	int superSample;
+	int supersample;
 	int w, h;
 	int iterations;
 	int quality;

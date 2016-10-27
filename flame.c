@@ -74,7 +74,6 @@ int flameGenerate(Flame *flame) {
 		pixels[i].c.b = 0.f;
 	}
 
-
 	int *xfd = createXformDistribution(flame);
 	int quality = flame->quality * flame->w * flame->h;
 	for (int sample = 0; sample < quality; sample++) {
@@ -105,12 +104,12 @@ int flameGenerate(Flame *flame) {
 			}
 
 			if (j > 0) {
-				int xi = (x + 1.f) * 0.5f * flame->w * flame->superSample;
-				int yi = (y + 1.f) * 0.5f * flame->h * flame->superSample;
+				int xi = (x + 1.f) * 0.5f * flame->w * flame->supersample;
+				int yi = (y + 1.f) * 0.5f * flame->h * flame->supersample;
 				if ((xi < 0) || (xi >= flame->w) || (yi < 0) || (yi >= flame->h)) {
 					continue;
 				}
-				Pixel *pixel = &pixels[xi + (yi * flame->w * flame->superSample)];
+				Pixel *pixel = &pixels[xi + (yi * flame->w * flame->supersample)];
 				//Colour *colour = &pixels[xi + (yi * flame->w * flame->superSample)].c;
 				//if (histogram[xi + (yi * flame->w * flame->superSample)] == 0.f) {
 					//colour->r = xform->
@@ -132,20 +131,19 @@ int flameGenerate(Flame *flame) {
 	return 0;
 }
 
+// 
 static int *createXformDistribution(Flame *flame) {
 	assert(flame->nXforms > 0);
-
 	int *xfd = malloc(sizeof(int) * XFORM_DISTRIBUTION_SIZE);
 	int xform = 0;
 	float offset = 0;
 	float total = 0;
-	
 	for (int i = 0; i < flame->nXforms; i++) {
 		total += flame->xforms[xform].weight;
 	}
-
 	for (int i = 0; i < XFORM_DISTRIBUTION_SIZE; i++) {
-		float p = ((float)i / (XFORM_DISTRIBUTION_SIZE * total));
+		//float p = ((float)i / (XFORM_DISTRIBUTION_SIZE * total));
+		float p = (((float)i) * total) / XFORM_DISTRIBUTION_SIZE;
 		if (((p - offset) > flame->xforms[xform].weight) && (xform < (flame->nXforms - 1))) {
 			xform++;
 			offset += p;
@@ -156,7 +154,7 @@ static int *createXformDistribution(Flame *flame) {
 }
 
 static int flameGetNSamples(Flame *flame) {
-	return flame->w * flame->superSample * flame->h * flame->superSample;
+	return flame->w * flame->supersample * flame->h * flame->supersample;
 }
 
 void flameTonemap(Flame *flame) {
@@ -182,8 +180,32 @@ void flameTonemap(Flame *flame) {
 	}
 }
 
+// this function is destructive, in that it reuses the same pixel buffer
 void flameDownsample(Flame *flame) {
+	int supersample = flame->supersample;
 	assert(flame->pixels != NULL);
-	
+	for (int y = 0; y < flame->h; y++) {
+		for (int x = 0; x < flame->w; x++) {
+			float totalIntensity = 0.f;
+			Colour total;
+			total.r = 0.f;
+			total.g = 0.f;
+			total.b = 0.f;
+			for (int yss = 0; yss < supersample; yss++) {
+				for (int xss = 0; xss < supersample; xss++) {
+					Pixel *pixel = &flame->pixels[(y * supersample * flame->w) + (x * supersample) + (yss * flame->w) + xss];
+					totalIntensity += pixel->intensity;
+					total.r += pixel->c.r;
+					total.g += pixel->c.g;
+					total.b += pixel->c.b;
+				}
+			}
+			Pixel *pixel = &flame->pixels[(y * flame->w) + x];
+			pixel->intensity = totalIntensity / (supersample * supersample);
+			pixel->c.r = total.r / (supersample * supersample);
+			pixel->c.g = total.g / (supersample * supersample);
+			pixel->c.b = total.b / (supersample * supersample);
+		}
+	} 
 }
 

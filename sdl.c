@@ -78,18 +78,19 @@ void sdlMain() {
 	int mustRecreateTexture = 0;
 
 	Flame *flame = flameCreate();
-	flame->superSample = 1;
+	flame->supersample = 1;
 	flame->w = width;
 	flame->h = height;
-	flame->iterations = 100; //?
-	flame->quality = 1;	// should probably be increased to a few thousand
-	flame->gamma = 2.f;
-	paletteAddColour(flame->palette, 1.f, 1.f, 1.f);
+	flame->iterations = 10; //?
+	flame->quality = 10;	// should probably be increased to a few thousand
+	flame->gamma = 2.0f;
+	paletteAddColour(flame->palette, 0.f, 0.f, 1.f);
 	paletteAddColour(flame->palette, 1.f, 0.f, 1.f);
 	paletteAddColour(flame->palette, 1.f, 0.f, 0.f);
+
 	Xform *xform = flameCreateXform(flame);
 	xform->hasFinal = 0;
-	xform->weight = 0.5f;
+	xform->weight = 0.951f;
 	xform->colour = 0.0f;
 	xform->opacity = 1.0f;
 	xform->symmetry = 0.0f;
@@ -99,8 +100,21 @@ void sdlMain() {
 	xform->coMain.d = -1.13321f;
 	xform->coMain.e = 1.31898;
 	xform->coMain.f = -0.07108f;
-	xformAddVariation(xform, 2, 0.9f);	// spherical
-	xformAddVariation(xform, 1, 0.1f);	// spherical
+	xformAddVariation(xform, 2, 1.0f);	// spherical
+
+	Xform *xform2 = flameCreateXform(flame);
+	xform2->hasFinal = 0;
+	xform2->weight = 0.007;
+	xform2->colour = 0.5f;
+	xform2->opacity = 1.0f;
+	xform2->symmetry = 0.0f;
+	xform2->coMain.a = -0.08903f; 
+	xform2->coMain.b = -0.668048;
+	xform2->coMain.c = 0.624383;
+	xform2->coMain.d = -0.086163;
+	xform2->coMain.e = -0.759701;
+	xform2->coMain.f = 0.265096;
+	xformAddVariation(xform2, 2, 1.0f);	// spherical
 
 	while (!quit) {
 		/*
@@ -146,35 +160,35 @@ void sdlMain() {
 							quit = 1;
 							break;
 						case SDLK_1:
-							flame->superSample = 1;
+							flame->supersample = 1;
 							mustRecreateSamplesBuffer = 1;
 							break;
 						case SDLK_2:
-							flame->superSample = 2;
+							flame->supersample = 2;
 							mustRecreateSamplesBuffer = 1;
 							break;
 						case SDLK_3:
-							flame->superSample = 3;
+							flame->supersample = 3;
 							mustRecreateSamplesBuffer = 1;
 							break;
 						case SDLK_4:
-							flame->superSample = 4;
+							flame->supersample = 4;
 							mustRecreateSamplesBuffer = 1;
 							break;
 						case SDLK_5:
-							flame->superSample = 5;
+							flame->supersample = 5;
 							mustRecreateSamplesBuffer = 1;
 							break;
 						case SDLK_6:
-							flame->superSample = 6;
+							flame->supersample = 6;
 							mustRecreateSamplesBuffer = 1;
 							break;
 						case SDLK_7:
-							flame->superSample = 7;
+							flame->supersample = 7;
 							mustRecreateSamplesBuffer = 1;
 							break;
 						case SDLK_8:
-							flame->superSample = 8;
+							flame->supersample = 8;
 							mustRecreateSamplesBuffer = 1;
 							break;
 						case SDLK_r:
@@ -196,6 +210,8 @@ void sdlMain() {
 					case SDL_WINDOWEVENT_RESIZED:
 						width = event.window.data1;
 						height = event.window.data2;
+						flame->w = width;
+						flame->h = height;
 						mustRecreateSamplesBuffer = 1;
 						mustRecreateTexture = 1;
 						break;
@@ -253,14 +269,18 @@ static void drawFractal(Flame *flame, int w, int h) {
 	*/
 	
 	flameGenerate(flame);
+	if (flame->supersample > 1) {
+		flameDownsample(flame);
+	}
+
 	flameTonemap(flame);
 
 	for (int y = 0; y < h; ++y) {
 		for (int x = 0; x < w; ++x) {
 			Pixel *pixel = &flame->pixels[x + (y * flame->w)];
-			((Uint8 *)pixels)[(w * y * 4) + (x * 4) + 0] = (Uint8)(pixel->c.r * 255);
+			((Uint8 *)pixels)[(w * y * 4) + (x * 4) + 0] = (Uint8)(pixel->c.b * 255);
 			((Uint8 *)pixels)[(w * y * 4) + (x * 4) + 1] = (Uint8)(pixel->c.g * 255);
-			((Uint8 *)pixels)[(w * y * 4) + (x * 4) + 2] = (Uint8)(pixel->c.b * 255);
+			((Uint8 *)pixels)[(w * y * 4) + (x * 4) + 2] = (Uint8)(pixel->c.r * 255);
 			((Uint8 *)pixels)[(w * y * 4) + (x * 4) + 3] = (Uint8)(255);
 		}
 	}
