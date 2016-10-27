@@ -87,6 +87,7 @@ void sdlMain() {
 	paletteAddColour(flame->palette, 0.f, 0.f, 1.f);
 	paletteAddColour(flame->palette, 1.f, 0.f, 1.f);
 	paletteAddColour(flame->palette, 1.f, 0.f, 0.f);
+	paletteAddColour(flame->palette, 1.f, 0.75f, 0.f);
 
 	Xform *xform = flameCreateXform(flame);
 	xform->hasFinal = 0;

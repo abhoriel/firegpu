@@ -38,7 +38,6 @@ void flameDestroy(Flame *flame) {
 	free(flame);
 }
 
-// totally broken
 Xform *flameCreateXform(Flame *flame) {
 	flame->xforms = realloc(flame->xforms, sizeof(Xform) * (flame->nXforms + 1));
 	if (flame->xforms == NULL) {
@@ -78,7 +77,7 @@ int flameGenerate(Flame *flame) {
 	int quality = flame->quality * flame->w * flame->h;
 	for (int sample = 0; sample < quality; sample++) {
 
-		if (sample % 10000) {
+		if ((sample % 1000) == 0) {
 			plog(LOG_INFO, "\rprogress %f%%...", 100.f * (float)sample / quality);
 
 		}
@@ -262,9 +261,14 @@ void flameRandomise(Flame *flame) {
 		int nVars = (rngGenerate32() % 3) + 1;
 		float total = 0.f;
 		for (int j = 0; j < nVars; j++) {
+			float weight;
 			int var = rngGenerate32() % 3;
-			float weight = rngGenerateFloat(0.0f, 1.f - total);
-			total += weight;
+			if (j != (nVars - 1)) {
+				weight = rngGenerateFloat(0.0f, 1.f - total);
+				total += weight;
+			} else {
+				weight = 1.f - total;	
+			}
 			xformAddVariation(xform, var, weight);
 			plog(LOG_INFO, "\tnew variation: %d, weight %f\n", var, weight);
 		}

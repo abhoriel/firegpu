@@ -2,10 +2,12 @@
 #include <string.h>
 #include "log.h"
 #include "xform.h"
+#include "variation.h"
 
 void xformInit(Xform *xform) {
 	xform->vars = NULL;
 	xform->nVars = 0;
+	xform->precalcFlags = 0;
 
 	xform->colour = 0.f;
 
@@ -30,8 +32,7 @@ void xformAddVariation(Xform *xform, int variation, FLOAT weight) {
 		plog(LOG_ERROR, "xformAddVariation: memory allocation failed\n");
 		return;
 	}
-	xform->vars[xform->nVars].var = variation;
-	xform->vars[xform->nVars].weight = weight;
+	variationInit(xform, &xform->vars[xform->nVars], variation, weight, 0.f, 0.f, 0.f, 0.f);
 	xform->nVars++;
 }
 

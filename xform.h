@@ -23,6 +23,7 @@ typedef struct {
 	//FLOAT *varWeights;
 	XformVariation *vars;
 	int nVars;
+	int precalcFlags;
 
 	FLOAT weight;
 	FLOAT symmetry;
