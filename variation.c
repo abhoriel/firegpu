@@ -118,7 +118,7 @@ static inline void swirl(XformVariation *xv, VarData *vd) {
 }
 
 static inline void horseshoe(XformVariation *xv, VarData *vd) {
-	float recipR  = xv->weight / (vd->r + PREVENT_DIVIDE_BY_ZERO);
+	float recipR = xv->weight / (vd->r + PREVENT_DIVIDE_BY_ZERO);
 	vd->nx += recipR * (vd->ox * vd->ox - vd->oy * vd->oy);
 	vd->ny += recipR * (2.f * vd->ox * vd->oy);
 }

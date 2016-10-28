@@ -9,7 +9,10 @@ void xformInit(Xform *xform) {
 	xform->nVars = 0;
 	xform->precalcFlags = 0;
 
-	xform->colour = 0.f;
+	xform->colourIndex = 0.f;
+	xform->colour.r = 0.f;
+	xform->colour.g = 0.f;
+	xform->colour.b = 0.f;
 
 	memset(&xform->coMain, 0, sizeof(Coefficients));
 	memset(&xform->coFinal, 0, sizeof(Coefficients));

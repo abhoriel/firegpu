@@ -69,6 +69,11 @@ int flameGenerate(Flame *flame) {
 		pixels[i].c.g = 0.f;
 		pixels[i].c.b = 0.f;
 	}
+	for (int i = 0; i < flame->nXforms; i++) {
+		Xform *xform = &flame->xforms[i];
+		paletteGetColour(flame->palette, xform->colourIndex, &xform->colour);
+	}
+
 
 	int *xfd = createXformDistribution(flame);
 	int quality = flame->quality * flame->w * flame->h;
@@ -111,17 +116,17 @@ int flameGenerate(Flame *flame) {
 				}
 				Pixel *pixel = &pixels[xi + (yi * flame->w * flame->supersample)];
 
-				Colour temp;
-				paletteGetColour(flame->palette, xform->colour, &temp);
-				pixel->c.r += temp.r * xform->opacity;
-				pixel->c.g += temp.g * xform->opacity;
-				pixel->c.b += temp.b * xform->opacity;
+				//Colour temp;
+				//paletteGetColour(flame->palette, xform->colour, &temp);
+				pixel->c.r += xform->colour.r * xform->opacity;
+				pixel->c.g += xform->colour.g * xform->opacity;
+				pixel->c.b += xform->colour.b * xform->opacity;
 
 				pixel->intensity += xform->opacity; 
 			}
 		}
 	}
-	plog(LOG_INFO, "\n");
+	plog(LOG_INFO, "\t");
 	free(xfd);
 	flame->pixels = pixels;
 	return 0;
@@ -240,7 +245,7 @@ void flameRandomise(Flame *flame) {
 		Xform *xform = flameCreateXform(flame);
 		xform->hasFinal = 0;
 		xform->weight = rngGenerateFloat(0.f, 1.f);
-		xform->colour = rngGenerateFloat(0.f, 1.f);
+		xform->colourIndex = rngGenerateFloat(0.f, 1.f);
 		xform->opacity = 1.0f;
 		xform->symmetry = 0.0f;
 		xform->coMain.a = rngGenerateFloat(-1.f, 1.f); 

@@ -88,7 +88,7 @@ int openclBuildProgram(const char *source) {
 	}
 
 	// Create the OpenCL kernel
-	fractalKernel = clCreateKernel(program, "fractal", &ret);
+	fractalKernel = clCreateKernel(program, "generate", &ret);
 	if (fractalKernel == NULL) {
 		plog(LOG_ERROR, "error creating opencl kernel: %s\n", openclGetError(ret));
 		return -1;

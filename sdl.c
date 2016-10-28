@@ -92,7 +92,7 @@ void sdlMain() {
 	Xform *xform = flameCreateXform(flame);
 	xform->hasFinal = 0;
 	xform->weight = 0.951f;
-	xform->colour = 0.0f;
+	xform->colourIndex = 0.0f;
 	xform->opacity = 1.0f;
 	xform->symmetry = 0.0f;
 	xform->coMain.a = 1.0743f; 	
@@ -106,7 +106,7 @@ void sdlMain() {
 	Xform *xform2 = flameCreateXform(flame);
 	xform2->hasFinal = 0;
 	xform2->weight = 0.007;
-	xform2->colour = 0.5f;
+	xform2->colourIndex = 0.5f;
 	xform2->opacity = 1.0f;
 	xform2->symmetry = 0.0f;
 	xform2->coMain.a = -0.08903f; 

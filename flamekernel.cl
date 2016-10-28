@@ -8,78 +8,63 @@ typedef struct {
 	float intensity;
 } Pixel;
 
-static unsigned long q = 123456789;
-static unsigned int c = 362436;
+typedef struct {
+	unsigned long q;
+	unsigned int c;
+} Rng;
 
-void rngSeed(unsigned long seed) {
-	q = seed;
-}
 
-unsigned int rngGenerate32() {
+//static unsigned long rngQ = 123456789;
+//static unsigned int rngC = 362436;
+
+unsigned int rngGenerate32(Rng *rng);
+float rngGenerateFloat(Rng *rng, float min, float max);
+
+unsigned int rngGenerate32(Rng *rng) {
 	unsigned long long a = 809430660LL;
-	q = a * q + c;
-	c = (q >> 32);
-	return q; 
+	rng->q = a * rng->q + rng->c;
+	rng->c = (rng->q >> 32);
+	return rng->q; 
 }
 
-static inline float rngGenerateFloat(float min, float max) {
+float rngGenerateFloat(Rng *rng, float min, float max) {
 	float diff = max - min;
-	return min + ((float)rngGenerate32() / (4294967295.f / diff));
+	return min + ((float)rngGenerate32(rng) / (4294967295.f / diff));
 }
 
+typedef struct {
+	int quality;
+	int iterations;
+	int w, h;
+} Flame;
 
+__kernel void generate(__constant Flame *flame,  __constant int *xfd, __global Pixel *pixels) {
 
-
-//int flameGenerate(Flame *flame) {
-//__kernel void fractal(int w, FLOAT scale, FLOAT topLeftX, FLOAT topLeftY, int limit, __global FLOAT *buffer) {
-__kernel void generate(int w, FLOAT scale, FLOAT topLeftX, FLOAT topLeftY, int limit, __global Pixel *pixels) {
-
-/*
-	if (flame->pixels != NULL) {
-		free(flame->pixels);
-		flame->pixels = NULL;
-	}
-
-	int nSamples = flameGetNSamples(flame);
-	Pixel *pixels = malloc(nSamples * sizeof(Pixel));
-	if (pixels == NULL) {
-		plog(LOG_ERROR, "drawFlame(): memory allocation failure\n");
-		return -1;
-	}
-	for (int i = 0; i < nSamples; i++) {
-		pixels[i].intensity = 0.f;
-		pixels[i].c.r = 0.f;
-		pixels[i].c.g = 0.f;
-		pixels[i].c.b = 0.f;
-	}
-
-	int *xfd = createXformDistribution(flame);
-*/
+	Rng rng;
+	rng.q = 123456789;	// this should be adjusted depending on the core
+	rng.c = 362436;
 
 	const int quality = flame->quality * flame->w * flame->h;
 	for (int sample = 0; sample < quality; sample++) {
-		float x = rngGenerateFloat(-1.f, 1.f);
-		float y = rngGenerateFloat(-1.f, 1.f);
+		float x = rngGenerateFloat(&rng, -1.f, 1.f);
+		float y = rngGenerateFloat(&rng, -1.f, 1.f);
 
+		(void)x;
+		(void)y;
 		for (int j = -20; j < flame->iterations; j++) {
 			// decide which xform to use
+			/*
 			int xformIndex = xfd[rngGenerate32() & (XFORM_DISTRIBUTION_SIZE - 1)];
-			Xform *xform = &flame->xforms[xformIndex];
+			Xform *xform = xforms[xformIndex];
 			
 			// in opencl we can use fma here
 			float newx = x * xform->coMain.a + y * xform->coMain.b + xform->coMain.c;
 			float newy = x * xform->coMain.d + y * xform->coMain.e + xform->coMain.f;
 			
-			variationDo(xform, &newx, &newy);
+			//variationDo(xform, &newx, &newy);
 
-			if (xform->hasFinal) {
-				x = newx * xform->coFinal.a + newy + xform->coFinal.b + xform->coFinal.c;
-				y = newx * xform->coFinal.d + newy + xform->coFinal.e + xform->coFinal.f;
-				// there can be a variation here too..
-			} else {
-				x = newx;
-				y = newy;
-			}
+			x = newx;
+			y = newy;
 
 			// after the first 20 iterations, we plot the points
 			if (j > 0) {
@@ -90,20 +75,16 @@ __kernel void generate(int w, FLOAT scale, FLOAT topLeftX, FLOAT topLeftY, int l
 				}
 				Pixel *pixel = &pixels[xi + (yi * flame->w * flame->supersample)];
 
-				Colour temp;
-				paletteGetColour(flame->palette, xform->colour, &temp);
-				pixel->c.r += temp.r * xform->opacity;
-				pixel->c.g += temp.g * xform->opacity;
-				pixel->c.b += temp.b * xform->opacity;
+				pixel->c.r += xform->colour.r * xform->opacity;
+				pixel->c.g += xform->colour.g * xform->opacity;
+				pixel->c.b += xform->colour.b * xform->opacity;
 
 				pixel->intensity += xform->opacity; 
 			}
+			*/
 		}
 	}
-	plog(LOG_INFO, "\n");
-	free(xfd);
-	flame->pixels = pixels;
-	return 0;
+	return;
 }
 
 

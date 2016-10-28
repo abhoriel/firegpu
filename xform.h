@@ -2,6 +2,7 @@
 #define XFORM_H
 
 #include "firegpu.h"
+#include "palette.h"
 
 typedef struct {
 	FLOAT a, b, c, d, e, f;
@@ -28,7 +29,9 @@ typedef struct {
 	FLOAT weight;
 	FLOAT symmetry;
 	FLOAT opacity;
-	FLOAT colour;
+	FLOAT colourIndex;
+
+	Colour colour;
 } Xform;
 
 

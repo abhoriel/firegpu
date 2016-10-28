@@ -2,10 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <getopt.h>
-#include <errno.h>
 #include <time.h>
-#include <sys/stat.h>
 #include "opencl.h"
+#include "source.h"
 #include "sdl.h"
 #include "rng.h"
 #include "log.h"
@@ -31,8 +30,7 @@ int verbose = 0;
 
 int main(int argc, char **argv) {
 	int w = 512, h = 512;
-	char fn[] = "brotkernel.cl";
-	char *source = NULL;
+	char fn[] = "flamekernel.cl";
 
 	int desiredPlatform = 0;
 	int desiredDevice = 0;
@@ -75,23 +73,24 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
-	(void)source; (void)desiredDevice; (void)desiredPlatform; (void)fn;
-	/*
+	//(void)source; (void)desiredDevice; (void)desiredPlatform; (void)fn;
+	
+
+	
 	if (openclInit(desiredPlatform, desiredDevice) != 0) {
 		plog(LOG_ERROR, "error initialising openCL\n");
 		return 1;
 	}
 	
-	source = loadSourceFile(fn);
+	Source *source = sourceLoad(fn);
 	if (source == NULL) {
 		return 1;
 	}
 	
-	int ret = openclBuildProgram(source);
+	int ret = openclBuildProgram(source->buffer);
 	if (ret != 0) {
 		return 1;
 	}
-	*/
 	
 	sdlMain();
 
@@ -107,51 +106,3 @@ int main(int argc, char **argv) {
 	return 0;
 }
 
-#if 0
-// load openCL source file of filename fn into memory
-// caller is responsible for free()ing this memory
-static char *loadSourceFile(const char *fn) {
-	struct stat fstats;
-	FILE *file;
-	char *source;
-	size_t size;
-
-	// get file size
-	if (stat(fn, &fstats) == 0) {
-		size = fstats.st_size;
-	} else {
-		plog(LOG_ERROR, "failed to stat file: %s: %s\n", fn, strerror(errno));
-		return NULL;
-	}
-	
-	// allocate the memory
-	source = malloc(size + 1);
-	if (source == NULL) {
-		plog(LOG_ERROR, "memory allocation failed: %s\n", strerror(errno));
-		return NULL;
-	}
-	
-	// open the file
-	file = fopen(fn, "rb");
-	if (file == NULL) {
-		plog(LOG_ERROR, "failed to open file: %s: %s\n", fn, strerror(errno));
-		return NULL;
-	}
-	
-	// read it into memory
-	size_t c = fread(source, 1, size, file);
-	if (c != size) {
-		//cerr << "file read error. " << c << " of " << size << " bytes read" << endl;
-		plog(LOG_ERROR, "file read error. %zu of %zu bytes read: %s\n", c, size, strerror(errno));
-		perror("fread");
-		return NULL;
-	}
-	
-	// null terminate the source
-	source[size] = '\0';
-	
-	fclose(file);
-	
-	return source;
-}
-#endif
