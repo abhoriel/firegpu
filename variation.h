@@ -11,7 +11,7 @@ typedef struct {
 	FLOAT ox, oy;
 	FLOAT nx, ny;
 
-	FLOAT rSquared, theta, phi;
+	FLOAT rSquared, r, theta, phi;
 	int preCalcFlags;
 } VarData;
 

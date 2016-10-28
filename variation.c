@@ -7,6 +7,7 @@
 
 #define PRECALC_NONE		0
 #define PRECALC_R_SQUARED	1
+#define PRECALC_R			2
 
 
 typedef struct {
@@ -19,13 +20,14 @@ static inline void linear(XformVariation *xv, VarData *vd);
 static inline void sinusoidal(XformVariation *xv, VarData *vd);
 static inline void spherical(XformVariation *xv, VarData *vd);
 static inline void swirl(XformVariation *xv, VarData *vd);
+static inline void horseshoe(XformVariation *xv, VarData *vd);
 
 Variation variations[] = {
 	{"linear", 			linear,				PRECALC_NONE},
 	{"sinusoidal",		sinusoidal,			PRECALC_NONE},
 	{"spherical",		spherical,			PRECALC_R_SQUARED},
-	{"swirl",			swirl,				PRECALC_R_SQUARED}
-	//{"horseshoe",		horseshoe},
+	{"swirl",			swirl,				PRECALC_R_SQUARED},
+	{"horseshoe",		horseshoe,			PRECALC_R}
 	//{"polar",			polar},
 	//{"handkerchief",	handkerchief},
 	//{"heart",			heart},
@@ -52,9 +54,13 @@ void variationDo(Xform *xform, FLOAT *x, FLOAT *y) {
 	vd.nx = 0.f;
 	vd.ny = 0.f;
 
-	if (xform->precalcFlags & PRECALC_R_SQUARED) {
+	// maybe always generated R squared?
+	//if (xform->precalcFlags & PRECALC_R_SQUARED) {
 		vd.rSquared = vd.ox * vd.ox + vd.oy * vd.oy;
-	}
+	//}
+	if (xform->precalcFlags & PRECALC_R) {
+		vd.r = sqrtf(vd.rSquared);
+	}	
 
 	for (int i = 0; i < xform->nVars; i++) {
 		XformVariation *xv = &xform->vars[i];
@@ -69,6 +75,8 @@ void variationDo(Xform *xform, FLOAT *x, FLOAT *y) {
 			case 2: 
 				spherical(xv, &vd);
 				break;
+			case 3:
+				swirl(xv, &vd);
 		}
 		
 	}
@@ -96,6 +104,15 @@ static inline void spherical(XformVariation *xv, VarData *vd) {
 }
 
 static inline void swirl(XformVariation *xv, VarData *vd) {
-	(void)xv; (void)vd;
+	float sinrs = sinf(vd->rSquared);
+	float cosrs = cosf(vd->rSquared);
+	vd->nx += xv->weight * (vd->ox * sinrs - vd->oy * cosrs);
+	vd->ny += xv->weight * (vd->ox * cosrs + vd->oy * sinrs);
 }
 
+static inline void horseshoe(XformVariation *xv, VarData *vd) {
+	float recipR  = xv->weight / vd->r;
+	vd->nx += recipR * (vd->ox * vd->ox - vd->oy * vd->oy);
+	vd->ny += recipR * (2.f * vd->ox * vd->oy);
+
+}

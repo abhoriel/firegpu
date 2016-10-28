@@ -46,7 +46,6 @@ Xform *flameCreateXform(Flame *flame) {
 	}
 	Xform *xform = &flame->xforms[flame->nXforms];
 	xformInit(xform);
-
 	flame->nXforms++;
 	return xform;
 }
@@ -79,19 +78,15 @@ int flameGenerate(Flame *flame) {
 
 		if ((sample % 1000) == 0) {
 			plog(LOG_INFO, "\rprogress %f%%...", 100.f * (float)sample / quality);
-
 		}
 
 		float x = rngGenerateFloat(-1.f, 1.f);
 		float y = rngGenerateFloat(-1.f, 1.f);
-		//float colour = rngGenerateFloat(0.f, 1.f);
-		//float alpha = rngGenerateFloat(0.f, 1.f);
 
 		for (int j = -20; j < flame->iterations; j++) {
 			// decide which xform to use
 			int xformIndex = xfd[rngGenerate32() & (XFORM_DISTRIBUTION_SIZE - 1)];
 			Xform *xform = &flame->xforms[xformIndex];
-			//float alpha = xform->opacity;
 			
 			// in opencl we can use fma here
 			float newx = x * xform->coMain.a + y * xform->coMain.b + xform->coMain.c;
@@ -108,7 +103,6 @@ int flameGenerate(Flame *flame) {
 				y = newy;
 			}
 
-
 			if (j > 0) {
 				int xi = (x + 1.f) * 0.5f * flame->w * flame->supersample;
 				int yi = (y + 1.f) * 0.5f * flame->h * flame->supersample;
@@ -116,10 +110,7 @@ int flameGenerate(Flame *flame) {
 					continue;
 				}
 				Pixel *pixel = &pixels[xi + (yi * flame->w * flame->supersample)];
-				//Colour *colour = &pixels[xi + (yi * flame->w * flame->superSample)].c;
-				//if (histogram[xi + (yi * flame->w * flame->superSample)] == 0.f) {
-					//colour->r = xform->
-				//}
+
 				Colour temp;
 				paletteGetColour(flame->palette, xform->colour, &temp);
 				// we can use the count to do all these divides at the end
@@ -131,7 +122,6 @@ int flameGenerate(Flame *flame) {
 			}
 		}
 	}
-
 	plog(LOG_INFO, "\n");
 	free(xfd);
 	flame->pixels = pixels;
@@ -167,12 +157,8 @@ static int flameGetNSamples(Flame *flame) {
 void flameTonemap(Flame *flame) {
 	assert(flame->pixels != NULL);
 	FLOAT max = 0;
-
 	for (int y = 0; y < (flame->h * flame->supersample); y++) {
 		for (int x = 0; x < (flame->w * flame->supersample); x++) {
-			// the multiply by supersample is to skip over supersamples we 
-			// dont care about anymore, as flameDownsample should already
-			// have been called
 			Pixel *pixel = &flame->pixels[y * flame->w * flame->supersample + x];
 			// divide by the intensity as we need the average colours here.
 			if (pixel->intensity != 0) {
@@ -186,7 +172,6 @@ void flameTonemap(Flame *flame) {
 			}
 		}
 	}
-
 	for (int y = 0; y < (flame->h * flame->supersample); y++) {
 		for (int x = 0; x < (flame->w * flame->supersample); x++) {
 			// gamma adjustment
@@ -262,7 +247,7 @@ void flameRandomise(Flame *flame) {
 		float total = 0.f;
 		for (int j = 0; j < nVars; j++) {
 			float weight;
-			int var = rngGenerate32() % 3;
+			int var = rngGenerate32() % 5;
 			if (j != (nVars - 1)) {
 				weight = rngGenerateFloat(0.0f, 1.f - total);
 				total += weight;
