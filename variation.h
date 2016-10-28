@@ -15,5 +15,4 @@ typedef struct {
 	int preCalcFlags;
 } VarData;
 
-
 #endif

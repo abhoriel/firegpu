@@ -1,7 +1,6 @@
 #ifndef PALETTE_H
 #define PALETTE_H
 
-
 typedef struct {
 	float r, g, b;
 } Colour;

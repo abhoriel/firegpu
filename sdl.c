@@ -19,7 +19,6 @@ static Uint32 *pixels;
 static int width, height;
 
 int sdlInit(int w, int h) {
-	//Initialize SDL
 	if(SDL_Init(SDL_INIT_VIDEO) < 0) {
 		plog(LOG_ERROR, "could not initialise sdl: %s\n", SDL_GetError());
 		return -1;
@@ -33,7 +32,7 @@ int sdlInit(int w, int h) {
 	
 	width = w;
 	height = h;
-	// TODO check for errors i guess
+
 	renderer = SDL_CreateRenderer(window, -1, 0);
 	if (renderer == NULL) {
 		plog(LOG_ERROR, "sdl renderer could not be created: %s\n", SDL_GetError());
@@ -81,13 +80,14 @@ void sdlMain() {
 	flame->supersample = 1;
 	flame->w = width;
 	flame->h = height;
-	flame->iterations = 10; //?
-	flame->quality = 10;	// should probably be increased to a few thousand
+	flame->iterations = 5; //?
+	flame->quality = 5;	// should probably be increased to a few thousand
 	flame->gamma = 2.0f;
 	paletteAddColour(flame->palette, 0.f, 0.f, 1.f);
 	paletteAddColour(flame->palette, 1.f, 0.f, 1.f);
 	paletteAddColour(flame->palette, 1.f, 0.f, 0.f);
 	paletteAddColour(flame->palette, 1.f, 0.75f, 0.f);
+	paletteAddColour(flame->palette, 1.f, 1.f, 1.f);
 
 	Xform *xform = flameCreateXform(flame);
 	xform->hasFinal = 0;
@@ -129,8 +129,8 @@ void sdlMain() {
 		drawFractal(flame, width, height);
 		plog(LOG_INFO, "done\n");
 
+		// display the texture on the screen
 		SDL_UpdateTexture(texture, NULL, pixels, width * sizeof(Uint32));
-		//SDL_RenderClear(renderer);
 		SDL_RenderCopy(renderer, texture, NULL, NULL);
 		SDL_RenderPresent(renderer);
 		
@@ -140,16 +140,20 @@ void sdlMain() {
 					quit = 1;
 					break;
 				case SDL_MOUSEBUTTONUP:
-					if (event.button.button == SDL_BUTTON_LEFT)
+					if (event.button.button == SDL_BUTTON_LEFT) {
 						leftMouseButtonDown = 0;
-					if (event.button.button == SDL_BUTTON_RIGHT)
+					}
+					if (event.button.button == SDL_BUTTON_RIGHT) {
 						rightMouseButtonDown = 0;
+					}
 					break;
 				case SDL_MOUSEBUTTONDOWN:
-					if (event.button.button == SDL_BUTTON_LEFT)
+					if (event.button.button == SDL_BUTTON_LEFT) {
 						leftMouseButtonDown = 1;
-					if (event.button.button == SDL_BUTTON_RIGHT)
+					}
+					if (event.button.button == SDL_BUTTON_RIGHT) {
 						rightMouseButtonDown = 1;
+					}
 					break;
 				case SDL_MOUSEMOTION:
 					mouseX = event.motion.x;
@@ -278,21 +282,13 @@ void sdlMain() {
 
 
 static void drawFractal(Flame *flame, int w, int h) {
-	/*
-	double *downSampled;
-	if (nSamples > 1) {
-		downSampled = downSample(samples, w, h, nSamples);
-	} else {
-		downSampled = samples;
-	}
-	*/
-	
+	// generate the flame, tonemap and downsample
 	flameGenerate(flame);
 	flameTonemap(flame);
 	if (flame->supersample > 1) {
 		flameDownsample(flame);
 	}
-
+	// write the flame into the texture
 	for (int y = 0; y < h; y++) {
 		for (int x = 0; x < w; x++) {
 			Pixel *pixel = &flame->pixels[(y * flame->w * flame->supersample) + x];

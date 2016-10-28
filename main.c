@@ -36,7 +36,6 @@ int main(int argc, char **argv) {
 
 	int desiredPlatform = 0;
 	int desiredDevice = 0;
-	(void)argc; (void)argv;	// avoid unused variable compiler warnings
 	int opt = 0;
 	int long_index;
 	opt = getopt_long(argc, argv, opt_string, long_opts, &long_index);
@@ -66,12 +65,6 @@ int main(int argc, char **argv) {
 		}
 		opt = getopt_long(argc, argv, opt_string, long_opts, &long_index);
 	}
-
-	/*
-	for (int i = 0; i < 25; i++) {
-		printf("%.9g\n", rngGenerateFloat(-1.f, 1.f));
-	}
-	*/
 
 	long seed = time(NULL);
 	plog(LOG_INFO, "rng seed: %ld\n", seed);
@@ -161,6 +154,4 @@ static char *loadSourceFile(const char *fn) {
 	
 	return source;
 }
-
-
 #endif

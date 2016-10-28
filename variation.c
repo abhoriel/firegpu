@@ -5,6 +5,8 @@
 #include "log.h"
 #include "variation.h"
 
+#define PREVENT_DIVIDE_BY_ZERO	0.0000000001f
+
 #define PRECALC_NONE		0
 #define PRECALC_R_SQUARED	1
 #define PRECALC_R			2
@@ -54,6 +56,7 @@ void variationDo(Xform *xform, FLOAT *x, FLOAT *y) {
 	vd.nx = 0.f;
 	vd.ny = 0.f;
 
+	// we can precalculate some commonly used values here
 	// maybe always generated R squared?
 	//if (xform->precalcFlags & PRECALC_R_SQUARED) {
 		vd.rSquared = vd.ox * vd.ox + vd.oy * vd.oy;
@@ -77,6 +80,10 @@ void variationDo(Xform *xform, FLOAT *x, FLOAT *y) {
 				break;
 			case 3:
 				swirl(xv, &vd);
+				break;
+			case 4:
+				horseshoe(xv, &vd);
+				break;
 		}
 		
 	}
@@ -98,7 +105,7 @@ static inline void sinusoidal(XformVariation *xv, VarData *vd) {
 }
 
 static inline void spherical(XformVariation *xv, VarData *vd) {
-	float a = xv->weight / (vd->rSquared + 0.00000000001f);
+	float a = xv->weight / (vd->rSquared + PREVENT_DIVIDE_BY_ZERO);
 	vd->nx += a * vd->ox;
 	vd->ny += a * vd->oy;
 }
@@ -111,8 +118,9 @@ static inline void swirl(XformVariation *xv, VarData *vd) {
 }
 
 static inline void horseshoe(XformVariation *xv, VarData *vd) {
-	float recipR  = xv->weight / vd->r;
+	float recipR  = xv->weight / (vd->r + PREVENT_DIVIDE_BY_ZERO);
 	vd->nx += recipR * (vd->ox * vd->ox - vd->oy * vd->oy);
 	vd->ny += recipR * (2.f * vd->ox * vd->oy);
-
 }
+
+

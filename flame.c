@@ -58,8 +58,6 @@ int flameGenerate(Flame *flame) {
 	}
 
 	int nSamples = flameGetNSamples(flame);
-	//float *histogram = malloc(nSamples * sizeof(float));
-	//Colour *colours = malloc(nSamples * sizeof(Colour));
 	Pixel *pixels = malloc(nSamples * sizeof(Pixel));
 	if (pixels == NULL) {
 		plog(LOG_ERROR, "drawFlame(): memory allocation failure\n");
@@ -74,6 +72,7 @@ int flameGenerate(Flame *flame) {
 
 	int *xfd = createXformDistribution(flame);
 	int quality = flame->quality * flame->w * flame->h;
+
 	for (int sample = 0; sample < quality; sample++) {
 
 		if ((sample % 1000) == 0) {
@@ -103,6 +102,7 @@ int flameGenerate(Flame *flame) {
 				y = newy;
 			}
 
+			// after the first 20 iterations, we plot the points
 			if (j > 0) {
 				int xi = (x + 1.f) * 0.5f * flame->w * flame->supersample;
 				int yi = (y + 1.f) * 0.5f * flame->h * flame->supersample;
@@ -113,7 +113,6 @@ int flameGenerate(Flame *flame) {
 
 				Colour temp;
 				paletteGetColour(flame->palette, xform->colour, &temp);
-				// we can use the count to do all these divides at the end
 				pixel->c.r += temp.r * xform->opacity;
 				pixel->c.g += temp.g * xform->opacity;
 				pixel->c.b += temp.b * xform->opacity;
@@ -128,7 +127,13 @@ int flameGenerate(Flame *flame) {
 	return 0;
 }
 
-// 
+// to accelerate randomly choosing an xform during each iteration, an array
+// containing a distribution of xforms according to their weights (ie. 
+// relative probability) is created. judging from the flames i have seen,
+// the weights of all xforms does not necessarily add up to 1.
+// XFORM_DISTRIBUTION_SIZE affects the resolution of the distribution, with
+// larger differences in relative probability being more accurately represented
+// the caller is responsible for free()ing the distribution
 static int *createXformDistribution(Flame *flame) {
 	assert(flame->nXforms > 0);
 	int *xfd = malloc(sizeof(int) * XFORM_DISTRIBUTION_SIZE);
@@ -139,7 +144,6 @@ static int *createXformDistribution(Flame *flame) {
 		total += flame->xforms[xform].weight;
 	}
 	for (int i = 0; i < XFORM_DISTRIBUTION_SIZE; i++) {
-		//float p = ((float)i / (XFORM_DISTRIBUTION_SIZE * total));
 		float p = (((float)i) * total) / XFORM_DISTRIBUTION_SIZE;
 		if (((p - offset) > flame->xforms[xform].weight) && (xform < (flame->nXforms - 1))) {
 			xform++;
@@ -154,6 +158,7 @@ static int flameGetNSamples(Flame *flame) {
 	return flame->w * flame->supersample * flame->h * flame->supersample;
 }
 
+// apply log density, normalise and gamma correction
 void flameTonemap(Flame *flame) {
 	assert(flame->pixels != NULL);
 	FLOAT max = 0;
@@ -186,6 +191,7 @@ void flameTonemap(Flame *flame) {
 }
 
 
+// down sample the flame using mean average
 // this function is destructive, in that it reuses the same pixel buffer
 void flameDownsample(Flame *flame) {
 	int supersample = flame->supersample;
@@ -217,6 +223,7 @@ void flameDownsample(Flame *flame) {
 	} 
 }
 
+// randomise the flame, destroys most of the previous flame parameters
 void flameRandomise(Flame *flame) {
 	for (int i = 0; i < flame->nXforms; i++) {
 		xformFini(&flame->xforms[i]);

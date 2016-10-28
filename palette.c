@@ -25,6 +25,7 @@ void paletteAddColour(Palette *palette, float r, float g, float b) {
 	palette->nColours++;
 }
 
+// get a colour from the palette. this will linearly interpolate between two colours
 void paletteGetColour(Palette *palette, float d, Colour *colour) {
 	assert(d >= 0.f);
 	assert(d <= 1.f);
