@@ -7,13 +7,12 @@
 #include "log.h"
 #include "source.h"
 
-
 Source *sourceCreate() {
 	Source *src = malloc(sizeof(Source));
 	src->buffer = malloc(512 * sizeof(char));
 	src->buffer[0] = '\0';
 	src->bufferSize = 512;
-	src->len = 0;
+	//src->len = 0;
 	return src;
 }
 
@@ -22,25 +21,38 @@ void sourceDestroy(Source *src) {
 	free(src);
 }
 
-void sourceAppend(Source *src, char *append) {
-	size_t appendLen = strlen(append);
-	size_t lenRequired = src->len + appendLen + 1;
+static int expandBufferIfNecessary(Source *src, size_t lenRequired) {
 	if (lenRequired > src->bufferSize) {
 		src->buffer = realloc(src->buffer, lenRequired);
 		if (src->buffer == NULL) {
 			plog(LOG_ERROR, "sourceAppend(): memory allocated failed\n");
-			return;
+			return 1;
 		}
 	}
+	return 0;
+}
+
+void sourceAppend(Source *src, const char *append) {
+	size_t appendLen = strlen(append);
+	size_t lenRequired = strlen(src->buffer) + appendLen + 1;
+	expandBufferIfNecessary(src, lenRequired);
 	strcat(src->buffer, append);
 }
 
-/*
-void sourceReplace(Source *src, char *needle, char *replacement) {
+void sourceReplace(Source *src, const char *needle, const char *replacement) {
 	assert(strstr(needle, replacement) == NULL);
+	char *found;
+	size_t needleLen = strlen(needle);
+	size_t replacementLen = strlen(replacement);
+	while((found = strstr(src->buffer, needle)) != NULL) {
+		size_t srcLen = strlen(src->buffer);
+		expandBufferIfNecessary(src, srcLen + 1 + (replacementLen - needleLen));
+		size_t moveLen = 1 + srcLen - ((found - src->buffer) + needleLen);
+		memmove(found + replacementLen, found + needleLen, moveLen);
+		memcpy(found, replacement, replacementLen);
 
+	}
 }
-*/
 
 // load openCL source file of filename fn into memory
 // caller is responsible for free()ing this memory
@@ -93,7 +105,6 @@ Source *sourceLoad(const char *fn) {
 	// null terminate the source
 	src->buffer[size] = '\0';
 	src->bufferSize = size;
-	src->len = size;
 	
 	fclose(file);
 	

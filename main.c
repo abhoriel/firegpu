@@ -9,9 +9,6 @@
 #include "rng.h"
 #include "log.h"
 
-
-//static char *loadSourceFile(const char *fn);
-
 static void usage() {
 	plog(LOG_ERROR, "Usage: firegpu\n");
 }
@@ -75,8 +72,6 @@ int main(int argc, char **argv) {
 
 	//(void)source; (void)desiredDevice; (void)desiredPlatform; (void)fn;
 	
-
-	
 	if (openclInit(desiredPlatform, desiredDevice) != 0) {
 		plog(LOG_ERROR, "error initialising openCL\n");
 		return 1;
@@ -86,6 +81,11 @@ int main(int argc, char **argv) {
 	if (source == NULL) {
 		return 1;
 	}
+
+	//sourceReplace(source, "flame->w", "512");
+	//sourceReplace(source, "flame->y", "512");
+	//sourceReplace(source, "should be adjusted", "hahalol");
+	plog(LOG_INFO, "%s\n", source->buffer);
 	
 	int ret = openclBuildProgram(source->buffer);
 	if (ret != 0) {
@@ -94,13 +94,12 @@ int main(int argc, char **argv) {
 	
 	sdlMain();
 
-	/*	
-	free(source);
+	sourceDestroy(source);	
 	
 	openclFiniProgram();
 	
 	openclFini();
-	*/
+
 	sdlFini();
 
 	return 0;

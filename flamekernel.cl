@@ -9,22 +9,20 @@ typedef struct {
 } Pixel;
 
 typedef struct {
-	unsigned long q;
+	unsigned int q;
 	unsigned int c;
 } Rng;
-
-
-//static unsigned long rngQ = 123456789;
-//static unsigned int rngC = 362436;
 
 unsigned int rngGenerate32(Rng *rng);
 float rngGenerateFloat(Rng *rng, float min, float max);
 
 unsigned int rngGenerate32(Rng *rng) {
-	unsigned long long a = 809430660LL;
-	rng->q = a * rng->q + rng->c;
-	rng->c = (rng->q >> 32);
-	return rng->q; 
+	unsigned long a = 809430660L;
+	unsigned long t;
+	t = a * rng->q + rng->c; 
+	rng->c = (t >> 32);
+	rng->q = t;
+	return rng->q;
 }
 
 float rngGenerateFloat(Rng *rng, float min, float max) {
