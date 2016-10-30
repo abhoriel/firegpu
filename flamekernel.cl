@@ -1,9 +1,11 @@
+// kernel for generating flame fractals
+// this will be modified heavily by the main program 
 
-typedef struct {
+typedef struct __attribute__ ((packed)) {
 	float r, g, b;
 } Colour;
 
-typedef struct {
+typedef struct __attribute__ ((packed)) {
 	Colour c;
 	float intensity;
 } Pixel;
@@ -30,56 +32,51 @@ float rngGenerateFloat(Rng *rng, float min, float max) {
 	return min + ((float)rngGenerate32(rng) / (4294967295.f / diff));
 }
 
-typedef struct {
-	int quality;
+typedef struct __attribute__ ((packed)) {
+	int w;
+	int h;
+	int supersample;
 	int iterations;
-	int w, h;
 } Flame;
 
-__kernel void generate(__constant Flame *flame,  __constant int *xfd, __global Pixel *pixels) {
-
+__kernel void generate(__constant Flame *flame, __constant int *xfd, __global Pixel *pixels) {
 	Rng rng;
-	rng.q = 123456789;	// this should be adjusted depending on the core
+	rng.q = 123456789;
 	rng.c = 362436;
+	// this way each work item should get a different seed
+	rng.q += get_global_id(0);
 
-	const int quality = flame->quality * flame->w * flame->h;
-	for (int sample = 0; sample < quality; sample++) {
-		float x = rngGenerateFloat(&rng, -1.f, 1.f);
-		float y = rngGenerateFloat(&rng, -1.f, 1.f);
+	float x = rngGenerateFloat(&rng, -1.f, 1.f);
+	float y = rngGenerateFloat(&rng, -1.f, 1.f);
 
-		(void)x;
-		(void)y;
-		for (int j = -20; j < flame->iterations; j++) {
-			// decide which xform to use
-			/*
-			int xformIndex = xfd[rngGenerate32() & (XFORM_DISTRIBUTION_SIZE - 1)];
-			Xform *xform = xforms[xformIndex];
-			
-			// in opencl we can use fma here
-			float newx = x * xform->coMain.a + y * xform->coMain.b + xform->coMain.c;
-			float newy = x * xform->coMain.d + y * xform->coMain.e + xform->coMain.f;
-			
-			//variationDo(xform, &newx, &newy);
+	for (int j = -20; j < flame->iterations; j++) {
+		// decide which xform to use
+		int xformIndex = xfd[rngGenerate32(&rng) & (XFORM_DISTRIBUTION_SIZE - 1)];
 
-			x = newx;
-			y = newy;
+		float xformColourR, xformColourG, xformColourB, xformOpacity;
+		float newX, newY;
+		switch(xformIndex) {
+// XFORM_SWITCH
+		}
 
-			// after the first 20 iterations, we plot the points
-			if (j > 0) {
-				int xi = (x + 1.f) * 0.5f * flame->w * flame->supersample;
-				int yi = (y + 1.f) * 0.5f * flame->h * flame->supersample;
-				if ((xi < 0) || (xi >= (flame->w * flame->supersample)) || (yi < 0) || (yi >= (flame->h * flame->supersample))) {
-					continue;
-				}
-				Pixel *pixel = &pixels[xi + (yi * flame->w * flame->supersample)];
+		//printf("%d %d %d %d\n", flame->w, flame->h, flame->supersample, flame->iterations);
 
-				pixel->c.r += xform->colour.r * xform->opacity;
-				pixel->c.g += xform->colour.g * xform->opacity;
-				pixel->c.b += xform->colour.b * xform->opacity;
+		x = newX;
+		y = newY;
 
-				pixel->intensity += xform->opacity; 
+		// after the first 20 iterations, we plot the points
+		if (j > 0) {
+			int xi = (x + 1.f) * 0.5f * flame->w * flame->supersample;
+			int yi = (y + 1.f) * 0.5f * flame->h * flame->supersample;
+			if ((xi < 0) || (xi >= (flame->w * flame->supersample)) || (yi < 0) || (yi >= (flame->h * flame->supersample))) {
+				continue;
 			}
-			*/
+			__global Pixel *pixel = &pixels[xi + (yi * flame->w * flame->supersample)];
+
+			pixel->c.r += xformColourR * xformOpacity;
+			pixel->c.g += xformColourG * xformOpacity;
+			pixel->c.b += xformColourB * xformOpacity;
+			pixel->intensity += xformOpacity; 
 		}
 	}
 	return;

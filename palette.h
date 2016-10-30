@@ -1,7 +1,7 @@
 #ifndef PALETTE_H
 #define PALETTE_H
 
-typedef struct {
+typedef struct __attribute__ ((packed)) {
 	float r, g, b;
 } Colour;
 

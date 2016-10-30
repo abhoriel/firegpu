@@ -27,7 +27,7 @@ int verbose = 0;
 
 int main(int argc, char **argv) {
 	int w = 512, h = 512;
-	char fn[] = "flamekernel.cl";
+	//char fn[] = "flamekernel.cl";
 
 	int desiredPlatform = 0;
 	int desiredDevice = 0;
@@ -77,6 +77,7 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 	
+	/*
 	Source *source = sourceLoad(fn);
 	if (source == NULL) {
 		return 1;
@@ -89,14 +90,15 @@ int main(int argc, char **argv) {
 	
 	int ret = openclBuildProgram(source->buffer);
 	if (ret != 0) {
-		return 1;
+		//return 1;
 	}
+	*/
 	
 	sdlMain();
 
-	sourceDestroy(source);	
+	//sourceDestroy(source);	
 	
-	openclFiniProgram();
+	//openclFiniProgram();
 	
 	openclFini();
 

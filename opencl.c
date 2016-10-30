@@ -9,6 +9,7 @@
 #else
 #include <CL/opencl.h>
 #endif
+#include "flame.h"
 #include "clerror.h"
 #include "log.h"
 
@@ -22,7 +23,6 @@ static cl_context context = NULL;
 static cl_command_queue commandQueue = NULL;
 static cl_program program = NULL;
 static cl_kernel fractalKernel = NULL;
-static cl_kernel juliaKernel = NULL;
 static cl_device_id deviceID = NULL;
 
 int openclInit(int desiredPlatform, int desiredDevice) {
@@ -71,7 +71,7 @@ int openclBuildProgram(const char *source) {
 	
 	// these build options are documented here: 
 	// https://www.khronos.org/registry/cl/sdk/2.0/docs/man/xhtml/clBuildProgram.html
-	ret = clBuildProgram(program, 1, &deviceID, "-D FLOAT=double -cl-denorms-are-zero -cl-fast-relaxed-math -Werror", NULL, NULL);
+	ret = clBuildProgram(program, 1, &deviceID, "-D FLOAT=float -cl-denorms-are-zero -cl-fast-relaxed-math -Werror", NULL, NULL);
 	if (ret != CL_SUCCESS) {
 		plog(LOG_ERROR, "error building opencl program: %s\n", openclGetError(ret));
 		// Determine the size of the log
@@ -133,10 +133,93 @@ int openclExecMandlebrot(int w, int h, double scale, double topLeftX, double top
 	return 0;
 }
 
+int openclExecFlame(Flame *flame, int *xfd, int xfdSize, Pixel *pixels, int nPixels) {
+	cl_int ret;
+
+	FlameOpenCL flameOpenCL;
+	flameOpenCL.w = flame->w;
+	flameOpenCL.h = flame->h;
+	flameOpenCL.supersample = flame->supersample;
+	//flameOpenCL.quality = flame->quality;
+	flameOpenCL.iterations = flame->iterations;
+	
+	cl_mem flameStructBuffer = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(FlameOpenCL), NULL, &ret);
+	if (flameStructBuffer == NULL) {
+		plog(LOG_ERROR, "error creating flame struct buffer: %s\n", openclGetError(ret));
+		return -1;
+	}
+	ret = clEnqueueWriteBuffer(commandQueue, flameStructBuffer, CL_TRUE, 0, sizeof(FlameOpenCL), &flameOpenCL, 0, NULL, NULL);
+	if (ret != CL_SUCCESS) {
+		plog(LOG_ERROR, "error enqueuing flame struct buffer: %s\n", openclGetError(ret));
+		return -1;
+	}
+
+	// allocate a buffer for the pixels
+	cl_mem pixelsBuffer = clCreateBuffer(context, CL_MEM_READ_WRITE, nPixels * sizeof(Pixel), NULL, &ret);
+	if (pixelsBuffer == NULL) {
+		plog(LOG_ERROR, "error creating pixel buffer: %s\n", openclGetError(ret));
+		return -1;
+	}
+	ret = clEnqueueWriteBuffer(commandQueue, pixelsBuffer, CL_TRUE, 0, nPixels * sizeof(Pixel), pixels, 0, NULL, NULL);
+	if (ret != CL_SUCCESS) {
+		plog(LOG_ERROR, "error enqueuing write pixel buffer: %s\n", openclGetError(ret));
+		return -1;
+	}
+
+	// allocate a buffer for the xfd
+	cl_mem xfdBuffer = clCreateBuffer(context, CL_MEM_READ_ONLY, xfdSize * sizeof(int), NULL, &ret);
+	if (xfdBuffer == NULL) {
+		plog(LOG_ERROR, "error creating xfd buffer: %s\n", openclGetError(ret));
+		return -1;
+	}
+	ret = clEnqueueWriteBuffer(commandQueue, xfdBuffer, CL_TRUE, 0, xfdSize * sizeof(int), xfd, 0, NULL, NULL);
+	if (ret != CL_SUCCESS) {
+		plog(LOG_ERROR, "error enqueuing write xfd buffer: %s\n", openclGetError(ret));
+		return -1;
+	}
+
+	// Set the arguments of the kernel
+	ret = clSetKernelArg(fractalKernel, 0, sizeof(cl_mem), &flameStructBuffer);
+	if (ret != CL_SUCCESS) {
+		plog(LOG_ERROR, "error setting kernel argument 1: %s\n", openclGetError(ret));
+		return -1;
+	}
+
+	ret = clSetKernelArg(fractalKernel, 1, sizeof(cl_mem), &xfdBuffer);
+	if (ret != CL_SUCCESS) {
+		plog(LOG_ERROR, "error setting kernel argument 2: %s\n", openclGetError(ret));
+		return -1;
+	}
+	ret = clSetKernelArg(fractalKernel, 2, sizeof(cl_mem), &pixelsBuffer);
+	if (ret != CL_SUCCESS) {
+		plog(LOG_ERROR, "error setting kernel argument 3: %s\n", openclGetError(ret));
+		return -1;
+	}
+	
+	// Execute the OpenCL kernel on the list
+	size_t globalItemSize[] = {(size_t)flame->quality * flame->w * flame->h};
+	ret = clEnqueueNDRangeKernel(commandQueue, fractalKernel, 1, NULL, 
+			globalItemSize, NULL, 0, NULL, NULL);
+	if (ret != CL_SUCCESS) {
+		plog(LOG_ERROR, "error enqueuing command: %s\n", openclGetError(ret));
+		return -1;
+	}
+	
+	// read the pixels back
+	ret = clEnqueueReadBuffer(commandQueue, pixelsBuffer, CL_TRUE, 0, nPixels * sizeof(Pixel), pixels, 0, NULL, NULL);
+	if (ret != CL_SUCCESS) {
+		plog(LOG_ERROR, "error enqueuing read buffer: %s\n", openclGetError(ret));
+		return -1;
+	}
+	clReleaseMemObject(flameStructBuffer);
+	clReleaseMemObject(pixelsBuffer);
+	clReleaseMemObject(xfdBuffer);
+	
+	return 0;
+}
 
 void openclFiniProgram() {
 	clReleaseKernel(fractalKernel);
-	clReleaseKernel(juliaKernel);
 	clReleaseProgram(program);
 }
 
@@ -245,18 +328,41 @@ static void printDeviceInfo(cl_device_id deviceId) {
 	str = getDeviceInfo(deviceId, CL_DEVICE_NAME);
 	plog(LOG_VERBOSE,"Name: %s\n", str);
 	free(str);
+
 	str = getDeviceInfo(deviceId, CL_DEVICE_MAX_CLOCK_FREQUENCY);
 	plog(LOG_VERBOSE,"Frequency: %d MHz\n", *((unsigned int *)str));
 	free(str);
+
 	str = getDeviceInfo(deviceId, CL_DEVICE_MAX_COMPUTE_UNITS);
-	plog(LOG_VERBOSE,"Cores: %d\n", *((unsigned int *)str));
+	plog(LOG_VERBOSE,"Compute units: %d\n", *((unsigned int *)str));
 	free(str);
-	str = getDeviceInfo(deviceId, CL_DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE);
-	plog(LOG_VERBOSE,"Preferred double width: %d\n", *((unsigned int *)str));
+
+	str = getDeviceInfo(deviceId, CL_DEVICE_GLOBAL_MEM_SIZE);
+	plog(LOG_VERBOSE,"Global memory size (B): %lu\n", *((unsigned long *)str));
 	free(str);
+
+	str = getDeviceInfo(deviceId, CL_DEVICE_LOCAL_MEM_SIZE);
+	plog(LOG_VERBOSE,"Local memory size (B): %lu\n", *((unsigned long *)str));
+	free(str);
+
+	str = getDeviceInfo(deviceId, CL_DEVICE_PREFERRED_VECTOR_WIDTH_FLOAT);
+	plog(LOG_VERBOSE,"Preferred float width: %d\n", *((unsigned int *)str));
+	free(str);
+
 	str = getDeviceInfo(deviceId, CL_DEVICE_MAX_WORK_GROUP_SIZE);
 	plog(LOG_VERBOSE,"Max work group size: %zu\n", *((size_t *)str));
 	free(str);
+
+	str = getDeviceInfo(deviceId, CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS);
+	unsigned int maxWorkItemDimensions = *((unsigned int *)str);
+	free(str);
+
+	str = getDeviceInfo(deviceId, CL_DEVICE_MAX_WORK_ITEM_SIZES);
+	for (unsigned i = 0; i < maxWorkItemDimensions; i++) {
+		plog(LOG_VERBOSE, "Dimension %u max work item size: %zu\n", i, ((size_t *)str)[i]);
+	}
+	free(str);
+
 	str = getDeviceInfo(deviceId, CL_DEVICE_EXTENSIONS);
 	plog(LOG_VERBOSE,"Extensions: %s\n", str);
 	free(str);

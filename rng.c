@@ -3,6 +3,7 @@
 
 #if 0
 // This is George Marsaglia's multiply with carry RNG algorithm
+
 // choose random initial c<809430660 and 256 random 32-bit integers for Q[] 
 static unsigned long Q[256],c=362436;  
 unsigned long MWC256(void) {
@@ -14,14 +15,8 @@ unsigned long MWC256(void) {
 }
 #endif
 
-/*
-unsigned int rngGenerate32() {
-	unsigned long long a = 809430660LL;
-	q = a * q + c;
-	c = (q >> 32);
-	return q; 
-}
-*/
+// we use the same algorithm but without the array of integers for Q
+// the period is therefore much shorter, but meh
 
 static uint32_t c = 362436;
 static uint32_t q = 123456789;

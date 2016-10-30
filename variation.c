@@ -57,7 +57,7 @@ void variationDo(Xform *xform, FLOAT *x, FLOAT *y) {
 	vd.ny = 0.f;
 
 	// we can precalculate some commonly used values here
-	// maybe always generated R squared?
+	// maybe always generate R squared?
 	//if (xform->precalcFlags & PRECALC_R_SQUARED) {
 		vd.rSquared = vd.ox * vd.ox + vd.oy * vd.oy;
 	//}

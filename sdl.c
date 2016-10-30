@@ -6,10 +6,12 @@
 #include "xform.h"
 #include "palette.h"
 #include "opencl.h"
+#include "source.h"
 #include "sdl.h"
 
 static void initFps();
 static float calculateFps();
+static void buildSource(Flame *flame);
 static void drawFractal(Flame *flame, int w, int h);
 
 static SDL_Window *window = NULL;
@@ -75,6 +77,7 @@ void sdlMain() {
 	int mouseY = 0;
 	int mustRecreateSamplesBuffer = 0;
 	int mustRecreateTexture = 0;
+	int mustRebuildSource = 0;
 
 	Flame *flame = flameCreate();
 	flame->supersample = 1;
@@ -117,15 +120,9 @@ void sdlMain() {
 	xform2->coMain.f = 0.265096;
 	xformAddVariation(xform2, 2, 1.0f);	// spherical
 
-	while (!quit) {
-		/*
-		int ret = openclExecMandlebrot(width * nSamples, height * nSamples, scale / nSamples, topLeftX, topLeftY, limit, samples);
-		if (ret != 0) {
-			plog(LOG_ERROR, "error executing opencl kernel\n");
-			return;
-		}
-		*/
+	buildSource(flame);
 
+	while (!quit) {
 		drawFractal(flame, width, height);
 		plog(LOG_INFO, "done\n");
 
@@ -166,6 +163,7 @@ void sdlMain() {
 							break;
 						case SDLK_RETURN:
 							flameRandomise(flame);
+							mustRebuildSource = 1;
 							break;
 						case SDLK_1:
 							flame->supersample = 1;
@@ -241,7 +239,12 @@ void sdlMain() {
 				}
 			}
 		}
-		
+	
+		if (mustRebuildSource) {
+			openclFiniProgram();
+			buildSource(flame);
+			mustRebuildSource = 0;
+		}	
 		if (mustRecreateSamplesBuffer) {
 			mustRecreateSamplesBuffer = 0;
 		}
@@ -276,7 +279,7 @@ void sdlMain() {
 		SDL_SetWindowTitle(window, title);
 	}
 	
-	//free(samples);
+	openclFiniProgram();
 	flameDestroy(flame);
 }
 
@@ -300,6 +303,13 @@ static void drawFractal(Flame *flame, int w, int h) {
 	}
 }
 
+static void buildSource(Flame *flame) {
+	Source *src = flameGenerateSource(flame);
+	plog(LOG_INFO, "%s\n", src->buffer);
+	int ret = openclBuildProgram(src->buffer);
+	(void)ret;
+	sourceDestroy(src);
+}
 
 
 #if 0

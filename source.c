@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <assert.h>
 #include <sys/stat.h>
+#include <stdarg.h>
 #include "log.h"
 #include "source.h"
 
@@ -42,16 +43,53 @@ void sourceAppend(Source *src, const char *append) {
 void sourceReplace(Source *src, const char *needle, const char *replacement) {
 	assert(strstr(needle, replacement) == NULL);
 	char *found;
+	int foundPosition;
 	size_t needleLen = strlen(needle);
 	size_t replacementLen = strlen(replacement);
 	while((found = strstr(src->buffer, needle)) != NULL) {
 		size_t srcLen = strlen(src->buffer);
+		foundPosition = found - src->buffer;
 		expandBufferIfNecessary(src, srcLen + 1 + (replacementLen - needleLen));
-		size_t moveLen = 1 + srcLen - ((found - src->buffer) + needleLen);
-		memmove(found + replacementLen, found + needleLen, moveLen);
-		memcpy(found, replacement, replacementLen);
+		size_t moveLen = 1 + srcLen - (foundPosition + needleLen);
+		memmove(src->buffer + foundPosition + replacementLen, src->buffer + foundPosition + needleLen, moveLen);
+		memcpy(src->buffer + foundPosition, replacement, replacementLen);
 
 	}
+}
+
+// some nice vargs ugliness
+void sourceReplaceFormatted(Source *src, const char *needle, const char *format, ...) {
+	va_list args1;
+	va_start(args1, format);
+	va_list args2;
+	va_copy(args2, args1);
+	size_t size = vsnprintf(NULL, 0, format, args1) + 1;
+	va_end(args1);
+
+	char *temp = malloc(size);
+	vsnprintf(temp, size, format, args2);
+
+	sourceReplace(src, needle, temp);
+
+	free(temp);
+	va_end(args2);
+}
+
+void sourceAppendFormatted(Source *src, const char *format, ...) {
+	va_list args1;
+	va_start(args1, format);
+	va_list args2;
+	va_copy(args2, args1);
+	size_t size = vsnprintf(NULL, 0, format, args1) + 1;
+	va_end(args1);
+
+	char *temp = malloc(size);
+	vsnprintf(temp, size, format, args2);
+
+	sourceAppend(src, temp);
+
+	free(temp);
+	va_end(args2);
 }
 
 // load openCL source file of filename fn into memory

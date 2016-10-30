@@ -7,6 +7,8 @@
 #include "rng.h"
 #include "palette.h"
 #include "variation.h"
+#include "source.h"
+#include "opencl.h"
 #include "flame.h"
 
 // MUST be a power of 2
@@ -14,6 +16,8 @@
 
 static int *createXformDistribution(Flame *flame);
 static int flameGetNSamples(Flame *flame);
+static void flameGenerateCpu(Flame *flame, int *xfd, Pixel *pixels);
+static void flameSetXformColours(Flame *flame);
 
 Flame *flameCreate() {
 	Flame *flame = malloc(sizeof(Flame));
@@ -69,13 +73,23 @@ int flameGenerate(Flame *flame) {
 		pixels[i].c.g = 0.f;
 		pixels[i].c.b = 0.f;
 	}
-	for (int i = 0; i < flame->nXforms; i++) {
-		Xform *xform = &flame->xforms[i];
-		paletteGetColour(flame->palette, xform->colourIndex, &xform->colour);
-	}
-
+	flameSetXformColours(flame);
 
 	int *xfd = createXformDistribution(flame);
+
+	if (1) {
+		openclExecFlame(flame, xfd, XFORM_DISTRIBUTION_SIZE, pixels, nSamples);
+	} else {
+		flameGenerateCpu(flame, xfd, pixels);
+	}
+
+	free(xfd);
+	flame->pixels = pixels;
+	return 0;
+}
+
+// reference CPU implementation. slow, does not use threading
+static void flameGenerateCpu(Flame *flame, int *xfd, Pixel *pixels) {
 	int quality = flame->quality * flame->w * flame->h;
 
 	for (int sample = 0; sample < quality; sample++) {
@@ -116,8 +130,6 @@ int flameGenerate(Flame *flame) {
 				}
 				Pixel *pixel = &pixels[xi + (yi * flame->w * flame->supersample)];
 
-				//Colour temp;
-				//paletteGetColour(flame->palette, xform->colour, &temp);
 				pixel->c.r += xform->colour.r * xform->opacity;
 				pixel->c.g += xform->colour.g * xform->opacity;
 				pixel->c.b += xform->colour.b * xform->opacity;
@@ -127,9 +139,44 @@ int flameGenerate(Flame *flame) {
 		}
 	}
 	plog(LOG_INFO, "\t");
-	free(xfd);
-	flame->pixels = pixels;
-	return 0;
+}
+
+Source *flameGenerateSource(Flame *flame) {
+	flameSetXformColours(flame);
+
+	Source *src = sourceLoad("flamekernel.cl");
+	if (src == NULL) {
+		return NULL;
+	}
+
+	sourceReplaceFormatted(src, "XFORM_DISTRIBUTION_SIZE", "%u", XFORM_DISTRIBUTION_SIZE);
+
+	Source *xformSrc = sourceCreate();	
+	for (int i = 0; i < flame->nXforms; i++) {
+		sourceAppendFormatted(xformSrc,	
+						"\t\t\tcase %d:\n"
+						"\t\t\t\tnewX = x * %.9ff + y * %.9ff + %.9ff;\n"
+						"\t\t\t\tnewY = x * %.9ff + y * %.9ff + %.9ff;\n"
+						"\t\t\t\txformColourR = %.9ff;\n"
+						"\t\t\t\txformColourG = %.9ff;\n"
+						"\t\t\t\txformColourB = %.9ff;\n"
+						"\t\t\t\txformOpacity = %.9ff;\n",
+					i,	flame->xforms[i].coMain.a, flame->xforms[i].coMain.b,
+			  			flame->xforms[i].coMain.c, flame->xforms[i].coMain.d,
+						flame->xforms[i].coMain.e, flame->xforms[i].coMain.f,
+						flame->xforms[i].colour.r,
+						flame->xforms[i].colour.g,
+						flame->xforms[i].colour.b,
+						flame->xforms[i].opacity
+						);
+		sourceAppend(xformSrc, "\t\t\t\tbreak;\n");
+	}
+
+	sourceReplace(src, "// XFORM_SWITCH", xformSrc->buffer);
+
+	sourceDestroy(xformSrc);
+
+	return src;
 }
 
 // to accelerate randomly choosing an xform during each iteration, an array
@@ -195,7 +242,6 @@ void flameTonemap(Flame *flame) {
 
 }
 
-
 // down sample the flame using mean average
 // this function is destructive, in that it reuses the same pixel buffer
 void flameDownsample(Flame *flame) {
@@ -210,8 +256,6 @@ void flameDownsample(Flame *flame) {
 			total.b = 0.f;
 			for (int yss = 0; yss < supersample; yss++) {
 				for (int xss = 0; xss < supersample; xss++) {
-					//Pixel *pixel = &flame->pixels[((y * supersample * flame->w) + (x * supersample) + (yss * flame->w) + xss];
-					//Pixel *pixel = &flame->pixels[((y * supersample) + yss) * supersample * flame->w + x * supersample + xss];
 					Pixel *pixel = &flame->pixels[((y * supersample) + yss) * supersample * flame->w + x * supersample + xss];
 					totalIntensity += pixel->intensity;
 					total.r += pixel->c.r;
@@ -254,7 +298,7 @@ void flameRandomise(Flame *flame) {
 		xform->coMain.d = rngGenerateFloat(-1.f, 1.f); 
 		xform->coMain.e = rngGenerateFloat(-1.f, 1.f); 
 		xform->coMain.f = rngGenerateFloat(-1.f, 1.f); 
-		plog(LOG_INFO, "new xform: weight %f, colour %f, a %.9g, b %.9g, c %.9g, d %.9g, e %.9g, f %.9g\n", xform->weight, xform->colour, xform->coMain.a, xform->coMain.b, xform->coMain.c, xform->coMain.d, xform->coMain.e, xform->coMain.f);
+		plog(LOG_INFO, "new xform: weight %f, colour %f, a %.9g, b %.9g, c %.9g, d %.9g, e %.9g, f %.9g\n", xform->weight, xform->colourIndex, xform->coMain.a, xform->coMain.b, xform->coMain.c, xform->coMain.d, xform->coMain.e, xform->coMain.f);
 		int nVars = (rngGenerate32() % 3) + 1;
 		float total = 0.f;
 		for (int j = 0; j < nVars; j++) {
@@ -273,4 +317,9 @@ void flameRandomise(Flame *flame) {
 
 }
 
-
+static void flameSetXformColours(Flame *flame) {
+	for (int i = 0; i < flame->nXforms; i++) {
+		Xform *xform = &flame->xforms[i];
+		paletteGetColour(flame->palette, xform->colourIndex, &xform->colour);
+	}
+}
