@@ -34,6 +34,7 @@ typedef struct __attribute__ ((packed)) {
 
 unsigned int rngGenerate32(Rng *rng);
 float rngGenerateFloat(Rng *rng, float min, float max);
+inline void atomicAdd(volatile __global float *addr, float val);
 
 unsigned int rngGenerate32(Rng *rng) {
 	unsigned long a = 809430660L;
@@ -88,13 +89,36 @@ __kernel void generate(__constant Flame *flame, __constant Xform *xforms, __cons
 			}
 			__global Pixel *pixel = &pixels[xi + (yi * flame->w * flame->supersample)];
 			float opacity = xforms[xformIndex].opacity;
+			
+			/*
 			pixel->c.r += xforms[xformIndex].colour.r * opacity;
 			pixel->c.g += xforms[xformIndex].colour.g * opacity;
 			pixel->c.b += xforms[xformIndex].colour.b * opacity;
 			pixel->intensity += opacity; 
+			*/
+			
+			atomicAdd(&pixel->c.r, xforms[xformIndex].colour.r * opacity);
+			atomicAdd(&pixel->c.g, xforms[xformIndex].colour.g * opacity);
+			atomicAdd(&pixel->c.b, xforms[xformIndex].colour.b * opacity);
+			atomicAdd(&pixel->intensity, opacity);
 		}
 	}
 	return;
 }
 
+// this elegant atomic add routine is from:
+// https://streamcomputing.eu/blog/2016-02-09/atomic-operations-for-floats-in-opencl-improved/
+inline void atomicAdd(volatile __global float *addr, float val) {
+	union {
+		unsigned int u32;
+		float f32;
+	} next, expected, current;
+
+	current.f32 = *addr;
+	do {
+		expected.f32 = current.f32;
+		next.f32 = expected.f32 + val;
+		current.u32 = atomic_cmpxchg((volatile __global unsigned int *)addr, expected.u32, next.u32);
+	} while(current.u32 != expected.u32);
+}
 

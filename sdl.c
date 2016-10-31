@@ -1,4 +1,5 @@
 #include <SDL2/SDL.h>
+#include <time.h>
 #include <errno.h>
 
 #include "log.h"
@@ -129,7 +130,6 @@ void sdlMain() {
 		if (ret < 0) {
 			quit = 1;
 		}
-		plog(LOG_INFO, "done\n");
 
 		// display the texture on the screen
 		SDL_UpdateTexture(texture, NULL, pixels, width * sizeof(Uint32));
@@ -221,11 +221,11 @@ void sdlMain() {
 							plog(LOG_INFO, "iterations: %d\n", flame->iterations);
 							break;
 						case SDLK_q:
-							flame->gamma += 1.f;
+							flame->gamma += 0.25f;
 							plog(LOG_INFO, "gamma: %f\n", flame->gamma);
 							break;
 						case SDLK_a:
-							flame->gamma -= 1.f;
+							flame->gamma -= 0.25f;
 							plog(LOG_INFO, "gamma: %f\n", flame->gamma);
 						case SDLK_n:
 							break;
@@ -295,14 +295,22 @@ static int drawFractal(Flame *flame, int w, int h) {
 	// generate the flame, tonemap and downsample
 	int ret;
 
+	clock_t time0 = clock();
 	ret = flameGenerate(flame);
 	if (ret < 0) {
 		return ret;
 	}
+
+	clock_t time1 = clock();
 	flameTonemap(flame);
 	if (flame->supersample > 1) {
 		flameDownsample(flame);
 	}
+	clock_t time2 = clock();
+	float genTime = ((float)time1 - time0) / CLOCKS_PER_SEC;
+	float tmTime = ((float)time2 - time1) / CLOCKS_PER_SEC;
+	plog(LOG_INFO, "done. time taken: generation: %.2fs, tonemapping %.2fs\n", genTime, tmTime);
+
 	// write the flame into the texture
 	for (int y = 0; y < h; y++) {
 		for (int x = 0; x < w; x++) {
@@ -318,7 +326,7 @@ static int drawFractal(Flame *flame, int w, int h) {
 
 static int buildSource(Flame *flame) {
 	Source *src = flameGenerateSource(flame);
-	plog(LOG_INFO, "%s\n", src->buffer);
+	plog(LOG_VERBOSE, "%s\n", src->buffer);
 	int ret = openclBuildProgram(src->buffer);
 	sourceDestroy(src);
 	return ret;

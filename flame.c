@@ -217,7 +217,7 @@ static int flameGetNSamples(Flame *flame) {
 // apply log density, normalise and gamma correction
 void flameTonemap(Flame *flame) {
 	assert(flame->pixels != NULL);
-	FLOAT max = 0;
+	float max = 0;
 	for (int y = 0; y < (flame->h * flame->supersample); y++) {
 		for (int x = 0; x < (flame->w * flame->supersample); x++) {
 			Pixel *pixel = &flame->pixels[y * flame->w * flame->supersample + x];
@@ -241,9 +241,22 @@ void flameTonemap(Flame *flame) {
 			pixel->c.r *= pixel->intensity;
 			pixel->c.g *= pixel->intensity;
 			pixel->c.b *= pixel->intensity;
+			// mathematically, this shouldnt happen. but due to non-atomic arithmetic and 
+			// race conditions in the GPU code, it can
+			if (pixel->c.r > 1.f) {
+				pixel->c.r = 1.f;
+			}
+			if (pixel->c.g > 1.f) {
+				pixel->c.g = 1.f;
+			}
+			if (pixel->c.b > 1.f) {
+				pixel->c.b = 1.f;
+			}
+			/*
+
+			*/
 		}
 	}
-
 }
 
 // down sample the flame using mean average
