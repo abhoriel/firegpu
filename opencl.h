@@ -12,5 +12,20 @@ int openclExecMandlebrot(int w, int h, double scale, double topLeftX, double top
 
 int openclExecFlame(Flame *flame, int *xfd, int xfdSize, Pixel *pixels, int nPixels);
 
+// a simplified flame structure which is used by the opencl kernel
+typedef struct __attribute__ ((packed)) {
+	int w;
+	int h;
+	int supersample;
+	int iterations;
+	int seed;
+} FlameOpenCL;
+
+typedef struct __attribute__ ((packed)) {
+	Colour colour;
+	float a, b, c, d, e, f;
+	float opacity;
+} XformOpenCL;
+
 #endif // OPENCL_H
 

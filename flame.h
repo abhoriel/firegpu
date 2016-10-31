@@ -27,15 +27,6 @@ typedef struct {
 } Flame;
 
 
-// a simplified flame structure which is used by the opencl kernel
-typedef struct __attribute__ ((packed)) {
-	int w;
-	int h;
-	int supersample;
-	int iterations;
-} FlameOpenCL;
-
-
 Flame *flameCreate();
 void flameDestroy(Flame *flame);
 Xform *flameCreateXform(Flame *flame);

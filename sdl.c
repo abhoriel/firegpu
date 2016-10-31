@@ -11,8 +11,8 @@
 
 static void initFps();
 static float calculateFps();
-static void buildSource(Flame *flame);
-static void drawFractal(Flame *flame, int w, int h);
+static int buildSource(Flame *flame);
+static int drawFractal(Flame *flame, int w, int h);
 
 static SDL_Window *window = NULL;
 static SDL_Renderer *renderer = NULL;
@@ -120,10 +120,15 @@ void sdlMain() {
 	xform2->coMain.f = 0.265096;
 	xformAddVariation(xform2, 2, 1.0f);	// spherical
 
-	buildSource(flame);
+	if (buildSource(flame) < 0) {
+		return;
+	}
 
 	while (!quit) {
-		drawFractal(flame, width, height);
+		int ret = drawFractal(flame, width, height);
+		if (ret < 0) {
+			quit = 1;
+		}
 		plog(LOG_INFO, "done\n");
 
 		// display the texture on the screen
@@ -242,7 +247,9 @@ void sdlMain() {
 	
 		if (mustRebuildSource) {
 			openclFiniProgram();
-			buildSource(flame);
+			if (buildSource(flame) < 0) {
+				return;
+			}
 			mustRebuildSource = 0;
 		}	
 		if (mustRecreateSamplesBuffer) {
@@ -284,9 +291,14 @@ void sdlMain() {
 }
 
 
-static void drawFractal(Flame *flame, int w, int h) {
+static int drawFractal(Flame *flame, int w, int h) {
 	// generate the flame, tonemap and downsample
-	flameGenerate(flame);
+	int ret;
+
+	ret = flameGenerate(flame);
+	if (ret < 0) {
+		return ret;
+	}
 	flameTonemap(flame);
 	if (flame->supersample > 1) {
 		flameDownsample(flame);
@@ -301,14 +313,15 @@ static void drawFractal(Flame *flame, int w, int h) {
 			((Uint8 *)pixels)[(w * y * 4) + (x * 4) + 3] = (Uint8)(255);
 		}
 	}
+	return 0;
 }
 
-static void buildSource(Flame *flame) {
+static int buildSource(Flame *flame) {
 	Source *src = flameGenerateSource(flame);
 	plog(LOG_INFO, "%s\n", src->buffer);
 	int ret = openclBuildProgram(src->buffer);
-	(void)ret;
 	sourceDestroy(src);
+	return ret;
 }
 
 

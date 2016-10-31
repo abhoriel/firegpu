@@ -77,15 +77,17 @@ int flameGenerate(Flame *flame) {
 
 	int *xfd = createXformDistribution(flame);
 
+	int ret;
 	if (1) {
-		openclExecFlame(flame, xfd, XFORM_DISTRIBUTION_SIZE, pixels, nSamples);
+		ret = openclExecFlame(flame, xfd, XFORM_DISTRIBUTION_SIZE, pixels, nSamples);
 	} else {
 		flameGenerateCpu(flame, xfd, pixels);
+		ret = 0;
 	}
 
 	free(xfd);
 	flame->pixels = pixels;
-	return 0;
+	return ret;
 }
 
 // reference CPU implementation. slow, does not use threading
@@ -151,6 +153,7 @@ Source *flameGenerateSource(Flame *flame) {
 
 	sourceReplaceFormatted(src, "XFORM_DISTRIBUTION_SIZE", "%u", XFORM_DISTRIBUTION_SIZE);
 
+	/*
 	Source *xformSrc = sourceCreate();	
 	for (int i = 0; i < flame->nXforms; i++) {
 		sourceAppendFormatted(xformSrc,	
@@ -171,10 +174,11 @@ Source *flameGenerateSource(Flame *flame) {
 						);
 		sourceAppend(xformSrc, "\t\t\t\tbreak;\n");
 	}
-
 	sourceReplace(src, "// XFORM_SWITCH", xformSrc->buffer);
-
 	sourceDestroy(xformSrc);
+	*/
+
+	variationGenerateSource(src, flame);
 
 	return src;
 }

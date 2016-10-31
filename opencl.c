@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #define CL_USE_DEPRECATED_OPENCL_2_0_APIS
 #define CL_USE_DEPRECATED_OPENCL_1_2_APIS
 
@@ -10,6 +11,7 @@
 #include <CL/opencl.h>
 #endif
 #include "flame.h"
+#include "opencl.h"
 #include "clerror.h"
 #include "log.h"
 
@@ -140,9 +142,24 @@ int openclExecFlame(Flame *flame, int *xfd, int xfdSize, Pixel *pixels, int nPix
 	flameOpenCL.w = flame->w;
 	flameOpenCL.h = flame->h;
 	flameOpenCL.supersample = flame->supersample;
-	//flameOpenCL.quality = flame->quality;
 	flameOpenCL.iterations = flame->iterations;
+	flameOpenCL.seed = time(NULL);
+
+	XformOpenCL *xforms = malloc(sizeof(XformOpenCL) * flame->nXforms);
+	for (int i = 0; i < flame->nXforms; i++) {
+		xforms[i].a = flame->xforms[i].coMain.a;
+		xforms[i].b = flame->xforms[i].coMain.b;
+		xforms[i].c = flame->xforms[i].coMain.c;
+		xforms[i].d = flame->xforms[i].coMain.d;
+		xforms[i].e = flame->xforms[i].coMain.e;
+		xforms[i].f = flame->xforms[i].coMain.f;
+		xforms[i].opacity = flame->xforms[i].opacity;
+		xforms[i].colour.r = flame->xforms[i].colour.r;
+		xforms[i].colour.g = flame->xforms[i].colour.g;
+		xforms[i].colour.b = flame->xforms[i].colour.b;
+	}
 	
+	// allocate a buffer for the flame struct
 	cl_mem flameStructBuffer = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(FlameOpenCL), NULL, &ret);
 	if (flameStructBuffer == NULL) {
 		plog(LOG_ERROR, "error creating flame struct buffer: %s\n", openclGetError(ret));
@@ -151,6 +168,18 @@ int openclExecFlame(Flame *flame, int *xfd, int xfdSize, Pixel *pixels, int nPix
 	ret = clEnqueueWriteBuffer(commandQueue, flameStructBuffer, CL_TRUE, 0, sizeof(FlameOpenCL), &flameOpenCL, 0, NULL, NULL);
 	if (ret != CL_SUCCESS) {
 		plog(LOG_ERROR, "error enqueuing flame struct buffer: %s\n", openclGetError(ret));
+		return -1;
+	}
+
+	// allocate a buffer for the xform structs
+	cl_mem xformStructBuffer = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(XformOpenCL) * flame->nXforms, NULL, &ret);
+	if (xformStructBuffer == NULL) {
+		plog(LOG_ERROR, "error creating xform struct buffer: %s\n", openclGetError(ret));
+		return -1;
+	}
+	ret = clEnqueueWriteBuffer(commandQueue, xformStructBuffer, CL_TRUE, 0, sizeof(XformOpenCL) * flame->nXforms, xforms, 0, NULL, NULL);
+	if (ret != CL_SUCCESS) {
+		plog(LOG_ERROR, "error enqueuing xform struct buffer: %s\n", openclGetError(ret));
 		return -1;
 	}
 
@@ -185,14 +214,20 @@ int openclExecFlame(Flame *flame, int *xfd, int xfdSize, Pixel *pixels, int nPix
 		return -1;
 	}
 
-	ret = clSetKernelArg(fractalKernel, 1, sizeof(cl_mem), &xfdBuffer);
+	ret = clSetKernelArg(fractalKernel, 1, sizeof(cl_mem), &xformStructBuffer);
 	if (ret != CL_SUCCESS) {
 		plog(LOG_ERROR, "error setting kernel argument 2: %s\n", openclGetError(ret));
 		return -1;
 	}
-	ret = clSetKernelArg(fractalKernel, 2, sizeof(cl_mem), &pixelsBuffer);
+
+	ret = clSetKernelArg(fractalKernel, 2, sizeof(cl_mem), &xfdBuffer);
 	if (ret != CL_SUCCESS) {
 		plog(LOG_ERROR, "error setting kernel argument 3: %s\n", openclGetError(ret));
+		return -1;
+	}
+	ret = clSetKernelArg(fractalKernel, 3, sizeof(cl_mem), &pixelsBuffer);
+	if (ret != CL_SUCCESS) {
+		plog(LOG_ERROR, "error setting kernel argument 4: %s\n", openclGetError(ret));
 		return -1;
 	}
 	
@@ -212,8 +247,10 @@ int openclExecFlame(Flame *flame, int *xfd, int xfdSize, Pixel *pixels, int nPix
 		return -1;
 	}
 	clReleaseMemObject(flameStructBuffer);
+	clReleaseMemObject(xformStructBuffer);
 	clReleaseMemObject(pixelsBuffer);
 	clReleaseMemObject(xfdBuffer);
+	free(xforms);
 	
 	return 0;
 }
