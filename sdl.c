@@ -87,10 +87,10 @@ void sdlMain() {
 	flame->iterations = 5; //?
 	flame->quality = 5;	// should probably be increased to a few thousand
 	flame->gamma = 2.0f;
-	paletteAddColour(flame->palette, 0.f, 0.f, 1.f);
-	paletteAddColour(flame->palette, 1.f, 0.f, 1.f);
-	paletteAddColour(flame->palette, 1.f, 0.f, 0.f);
-	paletteAddColour(flame->palette, 1.f, 0.75f, 0.f);
+	paletteAddColour(flame->palette, 0.1f, 0.1f, 1.f);
+	paletteAddColour(flame->palette, 1.f, 0.1f, 1.f);
+	paletteAddColour(flame->palette, 1.f, 0.1f, 0.1f);
+	paletteAddColour(flame->palette, 1.f, 0.75f, 0.1f);
 	paletteAddColour(flame->palette, 1.f, 1.f, 1.f);
 
 	Xform *xform = flameCreateXform(flame);
