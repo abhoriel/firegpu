@@ -16,9 +16,9 @@ typedef struct {
 
 typedef struct {
 	Coefficients coMain;
-	Coefficients coFinal;
+	Coefficients coPost;
 
-	int hasFinal;
+	int hasPost;
 
 	//int *vars;
 	//FLOAT *varWeights;

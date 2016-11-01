@@ -15,9 +15,9 @@ void xformInit(Xform *xform) {
 	xform->colour.b = 0.f;
 
 	memset(&xform->coMain, 0, sizeof(Coefficients));
-	memset(&xform->coFinal, 0, sizeof(Coefficients));
+	memset(&xform->coPost, 0, sizeof(Coefficients));
 
-	xform->hasFinal = 0;
+	xform->hasPost = 0;
 
 	xform->weight = 0.5f;
 	xform->symmetry = 0.f;

@@ -1,5 +1,5 @@
 // kernel for generating flame fractals
-// this will be modified heavily by the main program 
+// this will be modified by the main program 
 
 #define PREVENT_DIVIDE_BY_ZERO	0.0000000001f
 
@@ -65,12 +65,6 @@ __kernel void generate(__constant Flame *flame, __constant Xform *xforms, __cons
 		int xformIndex = xfd[rngGenerate32(&rng) & (XFORM_DISTRIBUTION_SIZE - 1)];
 
 		float ox, oy;
-		/*
-		float xformColourR, xformColourG, xformColourB, xformOpacity;
-		switch(xformIndex) {
-// XFORM_SWITCH
-		}
-		*/
 
 		//printf("a %f, b %f, c %f, opacity %f, r %f, g %f, g %f\n", xforms[xformIndex].a, xforms[xformIndex].b, xforms[xformIndex].c, xforms[xformIndex].opacity,  xforms[xformIndex].colour.r, xforms[xformIndex].colour.g, xforms[xformIndex].colour.b);
 		ox = x * xforms[xformIndex].a + y * xforms[xformIndex].b + xforms[xformIndex].c;
@@ -79,6 +73,10 @@ __kernel void generate(__constant Flame *flame, __constant Xform *xforms, __cons
 		//printf("%d %d %d %d\n", flame->w, flame->h, flame->supersample, flame->iterations);
 
 // APPLY_VARIATIONS
+
+// APPLY_POST_TRANSFORM
+
+// APPLY_FINAL_TRANSFORM
 
 		// after the first 20 iterations, we plot the points
 		if (j > 0) {

@@ -114,9 +114,9 @@ static void flameGenerateCpu(Flame *flame, int *xfd, Pixel *pixels) {
 			
 			variationDo(xform, &newx, &newy);
 
-			if (xform->hasFinal) {
-				x = newx * xform->coFinal.a + newy + xform->coFinal.b + xform->coFinal.c;
-				y = newx * xform->coFinal.d + newy + xform->coFinal.e + xform->coFinal.f;
+			if (xform->hasPost) {
+				x = newx * xform->coPost.a + newy + xform->coPost.b + xform->coPost.c;
+				y = newx * xform->coPost.d + newy + xform->coPost.e + xform->coPost.f;
 				// there can be a variation here too..
 			} else {
 				x = newx;
@@ -304,7 +304,7 @@ void flameRandomise(Flame *flame) {
 	plog(LOG_INFO, "\n\nnew fractal:\n");
 	for (int i = 0; i < nXforms; i++) {
 		Xform *xform = flameCreateXform(flame);
-		xform->hasFinal = 0;
+		xform->hasPost = 1;
 		xform->weight = rngGenerateFloat(0.f, 1.f);
 		xform->colourIndex = rngGenerateFloat(0.f, 1.f);
 		xform->opacity = 1.0f;
@@ -315,12 +315,26 @@ void flameRandomise(Flame *flame) {
 		xform->coMain.d = rngGenerateFloat(-1.f, 1.f); 
 		xform->coMain.e = rngGenerateFloat(-1.f, 1.f); 
 		xform->coMain.f = rngGenerateFloat(-1.f, 1.f); 
+
+		xform->coPost.a = rngGenerateFloat(-1.f, 1.f); 
+		xform->coPost.b = rngGenerateFloat(-1.f, 1.f); 
+		xform->coPost.c = rngGenerateFloat(-1.f, 1.f); 
+		xform->coPost.d = rngGenerateFloat(-1.f, 1.f); 
+		xform->coPost.e = rngGenerateFloat(-1.f, 1.f); 
+		xform->coPost.f = rngGenerateFloat(-1.f, 1.f); 
+
 		plog(LOG_INFO, "new xform: weight %f, colour %f, a %.9g, b %.9g, c %.9g, d %.9g, e %.9g, f %.9g\n", xform->weight, xform->colourIndex, xform->coMain.a, xform->coMain.b, xform->coMain.c, xform->coMain.d, xform->coMain.e, xform->coMain.f);
 		int nVars = (rngGenerate32() % 3) + 1;
 		float total = 0.f;
+		int *varsDone = calloc(N_VARIATIONS, sizeof(int));
+
 		for (int j = 0; j < nVars; j++) {
 			float weight;
-			int var = rngGenerate32() % 5;
+			int var;
+			do {
+				var = rngGenerate32() % N_VARIATIONS;
+			} while(varsDone[var] != 0);
+			varsDone[var] = 1;
 			if (j != (nVars - 1)) {
 				weight = rngGenerateFloat(0.0f, 1.f - total);
 				total += weight;
@@ -330,7 +344,9 @@ void flameRandomise(Flame *flame) {
 			xformAddVariation(xform, var, weight);
 			plog(LOG_INFO, "\tnew variation: %d, weight %f\n", var, weight);
 		}
+		free(varsDone);
 	}
+
 
 }
 

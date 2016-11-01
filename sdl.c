@@ -94,7 +94,7 @@ void sdlMain() {
 	paletteAddColour(flame->palette, 1.f, 1.f, 1.f);
 
 	Xform *xform = flameCreateXform(flame);
-	xform->hasFinal = 0;
+	xform->hasPost = 0;
 	xform->weight = 0.951f;
 	xform->colourIndex = 0.0f;
 	xform->opacity = 1.0f;
@@ -108,7 +108,7 @@ void sdlMain() {
 	xformAddVariation(xform, 2, 1.0f);	// spherical
 
 	Xform *xform2 = flameCreateXform(flame);
-	xform2->hasFinal = 0;
+	xform2->hasPost = 0;
 	xform2->weight = 0.007;
 	xform2->colourIndex = 0.5f;
 	xform2->opacity = 1.0f;

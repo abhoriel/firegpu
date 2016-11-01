@@ -12,6 +12,7 @@
 #define PRECALC_NONE		0
 #define PRECALC_R_SQUARED	1
 #define PRECALC_R			2
+#define PRECALC_THETA		4
 
 
 typedef struct {
@@ -32,17 +33,21 @@ static void emitSinusoidal(Source *varSrc, XformVariation *xv);
 static void emitSpherical(Source *varSrc, XformVariation *xv);
 static void emitSwirl(Source *varSrc, XformVariation *xv);
 static void emitHorseshoe(Source *varSrc, XformVariation *xv);
+static void emitPolar(Source *varSrc, XformVariation *xv);
+static void emitHandkerchief(Source *varSrc, XformVariation *xv);
+static void emitHeart(Source *varSrc, XformVariation *xv);
+static void emitDisc(Source *varSrc, XformVariation *xv);
 
 Variation variations[] = {
 	{"linear", 			emitLinear,				PRECALC_NONE},
 	{"sinusoidal",		emitSinusoidal,			PRECALC_NONE},
 	{"spherical",		emitSpherical,			PRECALC_R_SQUARED},
 	{"swirl",			emitSwirl,				PRECALC_R_SQUARED},
-	{"horseshoe",		emitHorseshoe,			PRECALC_R}
-	//{"polar",			polar},
-	//{"handkerchief",	handkerchief},
-	//{"heart",			heart},
-	//{"disc",			disc},
+	{"horseshoe",		emitHorseshoe,			PRECALC_R},
+	{"polar",			emitPolar,				PRECALC_R | PRECALC_THETA},
+	{"handkerchief",	emitHandkerchief,		PRECALC_R | PRECALC_THETA},
+	{"heart",			emitHeart,		 		PRECALC_R | PRECALC_THETA},
+	{"disc",			emitDisc,		 		PRECALC_R | PRECALC_THETA}
 	//{"spiral",			spiral},
 	//{"hyperbolic",		hyperbolic}
 };
@@ -109,6 +114,7 @@ void variationGenerateSource(Source *src, Flame *flame) {
 		vd.r = sqrtf(vd.rSquared);
 	}*/	
 	sourceAppend(varSrc, "\t\tfloat r = native_sqrt(rSquared);\n");
+	sourceAppend(varSrc, "\t\tfloat theta = atan(ox / oy);\n");
 
 
 	sourceAppend(varSrc, "\t\tx = 0; y = 0;\n");
@@ -118,6 +124,7 @@ void variationGenerateSource(Source *src, Flame *flame) {
 		for (int j = 0; j < flame->xforms[xform].nVars; j++) {
 			int var = flame->xforms[xform].vars[j].var;
 			if (variations[var].fn != NULL) {
+				sourceAppendFormatted(varSrc, "\t\t\t\t// variation %s (%d)\n", variations[var].name, var);
 				variations[var].fn(varSrc, &flame->xforms[xform].vars[j]);
 			}	
 	
@@ -137,8 +144,8 @@ static inline void linear(XformVariation *xv, VarData *vd) {
 }
 
 static void emitLinear(Source *varSrc, XformVariation *xv) {
-	sourceAppendFormatted(varSrc, "\t\t\t\tx += %.9f * ox;\n", xv->weight);
-	sourceAppendFormatted(varSrc, "\t\t\t\ty += %.9f * oy;\n", xv->weight);
+	sourceAppendFormatted(varSrc, "\t\t\t\tx += %.9ff * ox;\n", xv->weight);
+	sourceAppendFormatted(varSrc, "\t\t\t\ty += %.9ff * oy;\n", xv->weight);
 }
 
 static inline void sinusoidal(XformVariation *xv, VarData *vd) {
@@ -147,8 +154,8 @@ static inline void sinusoidal(XformVariation *xv, VarData *vd) {
 }
 
 static void emitSinusoidal(Source *varSrc, XformVariation *xv) {
-	sourceAppendFormatted(varSrc, "\t\t\t\tx += %.9f * native_sin(ox);\n", xv->weight);
-	sourceAppendFormatted(varSrc, "\t\t\t\ty += %.9f * native_sin(oy);\n", xv->weight);
+	sourceAppendFormatted(varSrc, "\t\t\t\tx += %.9ff * native_sin(ox);\n", xv->weight);
+	sourceAppendFormatted(varSrc, "\t\t\t\ty += %.9ff * native_sin(oy);\n", xv->weight);
 }
 
 static inline void spherical(XformVariation *xv, VarData *vd) {
@@ -159,7 +166,7 @@ static inline void spherical(XformVariation *xv, VarData *vd) {
 
 static void emitSpherical(Source *varSrc, XformVariation *xv) {
 	sourceAppend(varSrc, "\t\t\t\t{\n");
-	sourceAppendFormatted(varSrc, "\t\t\t\t\tfloat sphericalA = %.9f / (rSquared + PREVENT_DIVIDE_BY_ZERO);\n", xv->weight);
+	sourceAppendFormatted(varSrc, "\t\t\t\t\tfloat sphericalA = %.9ff / (rSquared + PREVENT_DIVIDE_BY_ZERO);\n", xv->weight);
 	sourceAppend(varSrc, "\t\t\t\t\tx += sphericalA * ox;\n");
 	sourceAppend(varSrc, "\t\t\t\t\ty += sphericalA * oy;\n");
 	sourceAppend(varSrc, "\t\t\t\t}\n");
@@ -176,8 +183,8 @@ static void emitSwirl(Source *varSrc, XformVariation *xv) {
 	sourceAppend(varSrc, "\t\t\t\t{\n");
 	sourceAppend(varSrc, "\t\t\t\t\tfloat sinrs = native_sin(rSquared);\n");
 	sourceAppend(varSrc, "\t\t\t\t\tfloat cosrs = native_cos(rSquared);\n");
-	sourceAppendFormatted(varSrc, "\t\t\t\t\tx += %.9f * (ox * sinrs - oy * cosrs);\n", xv->weight);
-	sourceAppendFormatted(varSrc, "\t\t\t\t\ty += %.9f * (ox * cosrs + oy * sinrs);\n", xv->weight);
+	sourceAppendFormatted(varSrc, "\t\t\t\t\tx += %.9ff * (ox * sinrs - oy * cosrs);\n", xv->weight);
+	sourceAppendFormatted(varSrc, "\t\t\t\t\ty += %.9ff * (ox * cosrs + oy * sinrs);\n", xv->weight);
 	sourceAppend(varSrc, "\t\t\t\t}\n");
 }
 
@@ -190,8 +197,42 @@ static inline void horseshoe(XformVariation *xv, VarData *vd) {
 
 static void emitHorseshoe(Source *varSrc, XformVariation *xv) {
 	sourceAppend(varSrc, "\t\t\t\t{\n");
-	sourceAppendFormatted(varSrc, "\t\t\t\t\tfloat recipR = %.9f / (r + PREVENT_DIVIDE_BY_ZERO);\n", xv->weight);
+	sourceAppendFormatted(varSrc, "\t\t\t\t\tfloat recipR = %.9ff / (r + PREVENT_DIVIDE_BY_ZERO);\n", xv->weight);
 	sourceAppend(varSrc, "\t\t\t\t\tx += recipR * (ox * ox - oy * oy);\n");
 	sourceAppend(varSrc, "\t\t\t\t\ty += recipR * (2.f * ox * oy);\n");
 	sourceAppend(varSrc, "\t\t\t\t}\n");
 }
+
+static void emitPolar(Source *varSrc, XformVariation *xv) {
+	sourceAppend(varSrc, "\t\t\t\t{\n");
+	sourceAppendFormatted(varSrc, "\t\t\t\t\tx += %.9ff * (theta / M_PI);\n", xv->weight);
+	sourceAppendFormatted(varSrc, "\t\t\t\t\ty += %.9ff * (r - 1);\n", xv->weight);
+	sourceAppend(varSrc, "\t\t\t\t}\n");
+}
+
+static void emitHandkerchief(Source *varSrc, XformVariation *xv) {
+	sourceAppend(varSrc, "\t\t\t\t{\n");
+	sourceAppendFormatted(varSrc, "\t\t\t\t\tfloat rWeight = r * %.9ff;\n", xv->weight);
+	sourceAppend(varSrc, "\t\t\t\t\tx += rWeight * native_sin(theta + r);\n");
+	sourceAppend(varSrc, "\t\t\t\t\ty += rWeight * native_cos(theta - r);\n ");
+	sourceAppend(varSrc, "\t\t\t\t}\n");
+}
+
+static void emitHeart(Source *varSrc, XformVariation *xv) {
+	sourceAppend(varSrc, "\t\t\t\t{\n");
+	sourceAppendFormatted(varSrc, "\t\t\t\t\tfloat rWeight = r * %.9ff;\n", xv->weight);
+	sourceAppend(varSrc, "\t\t\t\t\tfloat rTheta = r * theta;\n");
+	sourceAppend(varSrc, "\t\t\t\t\tx += rWeight * native_sin(rTheta);\n");
+	sourceAppend(varSrc, "\t\t\t\t\ty -= rWeight * native_cos(rTheta);\n ");
+	sourceAppend(varSrc, "\t\t\t\t}\n");
+}
+
+static void emitDisc(Source *varSrc, XformVariation *xv) {
+	sourceAppend(varSrc, "\t\t\t\t{\n");
+	sourceAppendFormatted(varSrc, "\t\t\t\t\tfloat thetaWeightPi = (theta * %.9ff) / M_PI;\n", xv->weight);
+	sourceAppend(varSrc, "\t\t\t\t\tfloat rPi = r * M_PI;\n");
+	sourceAppend(varSrc, "\t\t\t\t\tx += thetaWeightPi * native_sin(rPi);\n");
+	sourceAppend(varSrc, "\t\t\t\t\ty += thetaWeightPi * native_cos(rPi);\n ");
+	sourceAppend(varSrc, "\t\t\t\t}\n");
+}
+
