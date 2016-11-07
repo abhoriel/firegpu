@@ -25,6 +25,9 @@ Flame *flameCreate() {
 	flame->nXforms = 0;
 	flame->pixels = NULL;
 	flame->palette = paletteCreate();
+	flame->alpha = 0.4f;
+	flame->maxKernelRadius = 9.0f;
+	flame->minKernelRadius = 0.f;
 	return flame;
 }
 

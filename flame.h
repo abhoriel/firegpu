@@ -18,10 +18,11 @@ typedef struct {
 	int w, h;
 	int iterations;
 	int quality;
-	FLOAT centreX, centreY;
-	FLOAT scale;
-	FLOAT rotate;
-	FLOAT vibrancy, gamma, hue;
+	float centreX, centreY;
+	float scale;
+	float rotate;
+	float vibrancy, gamma, hue;
+	float maxKernelRadius, minKernelRadius, alpha; 
 	Palette *palette;
 	Pixel *pixels;
 } Flame;
