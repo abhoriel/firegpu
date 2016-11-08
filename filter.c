@@ -9,35 +9,36 @@ float epanechnikovKernel(float u) {
 	return 0.75f * (1.f - (u * u));
 }
 
-/*
+void filterInit() {
+
+}
+
 void generateKernels(int minWidth, int maxWidth) {
-	int nKernels = maxWidth - minWidth;
-	float halfMaxWidth = maxWidth / 2.f;
+	int nKernels = (maxWidth - minWidth) + 1;
+	float maxRadius = maxWidth / 2.f;
 
 	float **kernels = malloc(nKernels * sizeof(float *));
-	assert(maxWidth < 0);
+	assert(maxWidth > 0);
 
 	for (int i = 0; i < nKernels; i++) {
-		float width = minWidth + ((float)maxWidth - minWidth) / nKernels;
+		float radius = minWidth + ((float)maxWidth - minWidth) / (nKernels * 2.f);
 		float *kernel = malloc(maxWidth * maxWidth * sizeof(float));
 		for (int y = 0; y < maxWidth; y++) {
 			for (int x = 0; x < maxWidth; x++) {
-				//float yf = ((float)y / maxWidth) - 0.5f;
-				//float xf = ((float)x / maxWidth) - 0.5f;
-				float yf = (y - halfMaxWidth) / halfMaxWidth;
-				float xf = (x - halfMaxWidth) / halfMaxWidth;
+				float yf = y - maxRadius;
+				float xf = x - maxRadius;
 				float mag = sqrtf(xf * xf + yf * yf);
-				if (mag > 1.f) {
-					mag = 1.f;
+				if (mag > radius) {
+					mag = radius;
 				}
-				kernel[y * maxWidth + x] = epanechnikovKernel(mag);	
+				kernel[y * maxWidth + x] = epanechnikovKernel(mag / radius);	
 			}
 		}
 		kernels[i] = kernel;
 	}
 
 }
-*/
+
 
 /*
 void downSample(Flame *flame, Pixel *down) {
