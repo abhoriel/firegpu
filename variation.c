@@ -128,7 +128,8 @@ void variationGenerateSource(Source *src, Flame *flame) {
 			sourceAppend(varSrc, "\t\t\t\tfloat r = native_sqrt(rSquared);\n");
 		}
 		if (xf->precalcFlags & PRECALC_THETA) {
-			sourceAppend(varSrc, "\t\t\t\tfloat theta = atan(ox / oy);\n");
+			sourceAppend(varSrc, "\t\t\t\tfloat theta = atan(ox / (oy + PREVENT_DIVIDE_BY_ZERO));\n");
+			//sourceAppend(varSrc, "\t\t\t\tfloat theta = 0.f;\n");
 		}
 		for (int j = 0; j < xf->nVars; j++) {
 			int var = xf->vars[j].var;
@@ -217,7 +218,7 @@ static void emitHorseshoe(Source *varSrc, XformVariation *xv) {
 
 static void emitPolar(Source *varSrc, XformVariation *xv) {
 	sourceAppend(varSrc, "\t\t\t\t{\n");
-	sourceAppendFormatted(varSrc, "\t\t\t\t\tx += %.9ff * (theta / M_PI);\n", xv->weight);
+	sourceAppendFormatted(varSrc, "\t\t\t\t\tx += %.9ff * (theta / M_PI_F);\n", xv->weight);
 	sourceAppendFormatted(varSrc, "\t\t\t\t\ty += %.9ff * (r - 1);\n", xv->weight);
 	sourceAppend(varSrc, "\t\t\t\t}\n");
 }
@@ -241,8 +242,8 @@ static void emitHeart(Source *varSrc, XformVariation *xv) {
 
 static void emitDisc(Source *varSrc, XformVariation *xv) {
 	sourceAppend(varSrc, "\t\t\t\t{\n");
-	sourceAppendFormatted(varSrc, "\t\t\t\t\tfloat thetaWeightPi = (theta * %.9ff) / M_PI;\n", xv->weight);
-	sourceAppend(varSrc, "\t\t\t\t\tfloat rPi = r * M_PI;\n");
+	sourceAppendFormatted(varSrc, "\t\t\t\t\tfloat thetaWeightPi = (theta * %.9ff) / M_PI_F;\n", xv->weight);
+	sourceAppend(varSrc, "\t\t\t\t\tfloat rPi = r * M_PI_F;\n");
 	sourceAppend(varSrc, "\t\t\t\t\tx += thetaWeightPi * native_sin(rPi);\n");
 	sourceAppend(varSrc, "\t\t\t\t\ty += thetaWeightPi * native_cos(rPi);\n ");
 	sourceAppend(varSrc, "\t\t\t\t}\n");
