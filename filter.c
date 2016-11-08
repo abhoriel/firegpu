@@ -9,8 +9,16 @@ float epanechnikovKernel(float u) {
 	return 0.75f * (1.f - (u * u));
 }
 
-void filterInit() {
-
+DensityEstimationFilter *filterCreate(float minWidth, float maxWidth, float alpha) {
+	DensityEstimationFilter *def = malloc(sizeof(DensityEstimationFilter));
+	if (def == NULL) {
+		return NULL;
+	}
+	def->alpha = alpha;
+	def->minWidth = minWidth;
+	def->maxWidth = maxWidth;
+	
+	return def;
 }
 
 void generateKernels(int minWidth, int maxWidth) {
