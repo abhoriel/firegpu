@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <math.h>
+#include <assert.h>
 #include "log.h"
 #include "flame.h"
 #include "filter.h"
@@ -14,9 +15,10 @@ void generateKernels(int minWidth, int maxWidth) {
 	float halfMaxWidth = maxWidth / 2.f;
 
 	float **kernels = malloc(nKernels * sizeof(float *));
+	assert(maxWidth < 0);
 
 	for (int i = 0; i < nKernels; i++) {
-		int width = i + minWidth;
+		float width = minWidth + ((float)maxWidth - minWidth) / nKernels;
 		float *kernel = malloc(maxWidth * maxWidth * sizeof(float));
 		for (int y = 0; y < maxWidth; y++) {
 			for (int x = 0; x < maxWidth; x++) {
@@ -35,7 +37,6 @@ void generateKernels(int minWidth, int maxWidth) {
 	}
 
 }
-*
 */
 
 /*

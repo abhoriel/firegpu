@@ -108,27 +108,39 @@ void variationDo(Xform *xform, FLOAT *x, FLOAT *y) {
 
 void variationGenerateSource(Source *src, Flame *flame) {
 	Source *varSrc = sourceCreate();
-	sourceAppend(varSrc, "\t\tfloat rSquared = ox * ox + oy * oy;\n");
+
 	/*
 	if (xform->precalcFlags & PRECALC_R) {
 		vd.r = sqrtf(vd.rSquared);
 	}*/	
-	sourceAppend(varSrc, "\t\tfloat r = native_sqrt(rSquared);\n");
-	sourceAppend(varSrc, "\t\tfloat theta = atan(ox / oy);\n");
 
 
 	sourceAppend(varSrc, "\t\tx = 0; y = 0;\n");
 	sourceAppend(varSrc, "\t\tswitch(xformIndex) {\n");	
 	for (int xform = 0; xform < flame->nXforms; xform++) {
 		sourceAppendFormatted(varSrc, "\t\t\tcase %d:\n", xform);
-		for (int j = 0; j < flame->xforms[xform].nVars; j++) {
-			int var = flame->xforms[xform].vars[j].var;
+		Xform *xf = &flame->xforms[xform];
+		sourceAppend(varSrc, "\t\t\t\t{\n");
+		if (xf->precalcFlags & (PRECALC_R_SQUARED | PRECALC_R)) {
+			sourceAppend(varSrc, "\t\t\t\tfloat rSquared = ox * ox + oy * oy;\n");
+		}
+		if (xf->precalcFlags & PRECALC_R) {
+			sourceAppend(varSrc, "\t\t\t\tfloat r = native_sqrt(rSquared);\n");
+		}
+		if (xf->precalcFlags & PRECALC_THETA) {
+			sourceAppend(varSrc, "\t\t\t\tfloat theta = atan(ox / oy);\n");
+		}
+		for (int j = 0; j < xf->nVars; j++) {
+			int var = xf->vars[j].var;
 			if (variations[var].fn != NULL) {
+
+
 				sourceAppendFormatted(varSrc, "\t\t\t\t// variation %s (%d)\n", variations[var].name, var);
-				variations[var].fn(varSrc, &flame->xforms[xform].vars[j]);
+				variations[var].fn(varSrc, &xf->vars[j]);
 			}	
 	
-		}		
+		}
+		sourceAppend(varSrc, "\t\t\t\t}\n");
 		sourceAppend(varSrc, "\t\t\t\tbreak;\n");
 	}
 	sourceAppend(varSrc, "\t\t}\n");	
