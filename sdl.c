@@ -7,6 +7,7 @@
 #include "xform.h"
 #include "palette.h"
 #include "opencl.h"
+#include "filter.h"
 #include "source.h"
 #include "sdl.h"
 
@@ -120,6 +121,10 @@ void sdlMain() {
 	xform2->coMain.e = -0.759701;
 	xform2->coMain.f = 0.265096;
 	xformAddVariation(xform2, 2, 1.0f);	// spherical
+
+
+	DensityEstimationFilter *def = filterCreate(flame->minKernelRadius, flame->maxKernelRadius, flame->alpha);
+	(void)def;
 
 	if (buildSource(flame) < 0) {
 		return;

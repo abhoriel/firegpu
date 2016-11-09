@@ -5,9 +5,8 @@
 #include "flame.h"
 #include "filter.h"
 
-float epanechnikovKernel(float u) {
-	return 0.75f * (1.f - (u * u));
-}
+static void generateKernels(DensityEstimationFilter *def);
+static float epanechnikovKernel(float u);
 
 DensityEstimationFilter *filterCreate(float minWidth, float maxWidth, float alpha) {
 	DensityEstimationFilter *def = malloc(sizeof(DensityEstimationFilter));
@@ -17,34 +16,39 @@ DensityEstimationFilter *filterCreate(float minWidth, float maxWidth, float alph
 	def->alpha = alpha;
 	def->minWidth = minWidth;
 	def->maxWidth = maxWidth;
-	
+	generateKernels(def);
 	return def;
 }
 
-void generateKernels(int minWidth, int maxWidth) {
-	int nKernels = (maxWidth - minWidth) + 1;
-	float maxRadius = maxWidth / 2.f;
+static void generateKernels(DensityEstimationFilter *def) {
+	int maxWidthCeil = ceilf(def->maxWidth);
+	int nKernels = (def->maxWidth - def->minWidth) + 1;
+	float maxRadius = def->maxWidth / 2.f;
 
-	float **kernels = malloc(nKernels * sizeof(float *));
-	assert(maxWidth > 0);
+	def->kernels = malloc(nKernels * sizeof(float *));
+	assert(def->maxWidth > 0);
+	assert(def->minWidth >= 0);
 
 	for (int i = 0; i < nKernels; i++) {
-		float radius = minWidth + ((float)maxWidth - minWidth) / (nKernels * 2.f);
-		float *kernel = malloc(maxWidth * maxWidth * sizeof(float));
-		for (int y = 0; y < maxWidth; y++) {
-			for (int x = 0; x < maxWidth; x++) {
+		float radius = def->minWidth + i * (((float)def->maxWidth - def->minWidth) / (nKernels * 2.f));
+		float *kernel = malloc(maxWidthCeil * maxWidthCeil * sizeof(float));
+		for (int y = 0; y < maxWidthCeil; y++) {
+			for (int x = 0; x < maxWidthCeil; x++) {
 				float yf = y - maxRadius;
 				float xf = x - maxRadius;
 				float mag = sqrtf(xf * xf + yf * yf);
 				if (mag > radius) {
 					mag = radius;
 				}
-				kernel[y * maxWidth + x] = epanechnikovKernel(mag / radius);	
+				kernel[y * maxWidthCeil + x] = epanechnikovKernel(mag / radius);	
+				plog(LOG_INFO, "%.5f ", kernel[y * maxWidthCeil + x]);
 			}
+			plog(LOG_INFO, "\n");
 		}
-		kernels[i] = kernel;
+		def->kernels[i] = kernel;
+		plog(LOG_INFO, "\n\n");
 	}
-
+	def->nKernels = nKernels;
 }
 
 
@@ -67,3 +71,10 @@ void downSample(Flame *flame, Pixel *down) {
 	}
 }
 */
+
+
+static float epanechnikovKernel(float u) {
+	return 0.75f * (1.f - (u * u));
+}
+
+

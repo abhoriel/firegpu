@@ -9,5 +9,7 @@ typedef struct {
 	float **kernels;
 } DensityEstimationFilter;
 
+DensityEstimationFilter *filterCreate(float minWidth, float maxWidth, float alpha);
+
 #endif
 
