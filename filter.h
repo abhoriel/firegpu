@@ -2,8 +2,8 @@
 #define FILTER_H
 
 typedef struct {
-	float minWidth;
-	float maxWidth;
+	float minRadius;
+	float maxRadius;
 	float alpha;
 	int nKernels;
 	float **kernels;
