@@ -123,7 +123,7 @@ void sdlMain() {
 	xformAddVariation(xform2, 2, 1.0f);	// spherical
 
 
-	DensityEstimationFilter *def = filterCreate(flame->minKernelRadius, flame->maxKernelRadius, flame->alpha);
+	DensityEstimationFilter *def = filterCreate(flame->minKernelRadius, flame->maxKernelRadius, flame->alpha, flame->supersample);
 	(void)def;
 
 	if (buildSource(flame) < 0) {
