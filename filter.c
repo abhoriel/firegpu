@@ -29,14 +29,14 @@ static void generateKernels(DensityEstimationFilter *def, int ss) {
 	int rowSize = 2 * maxRadius - 1;
 	int halfRowSize = (rowSize - 1) / 2;
 
-	plog(LOG_INFO, "maxRadius %f, minRadius %f, maxRadius / minRadius %f\n", maxRadius, minRadius, maxRadius / minRadius);
+	//plog(LOG_INFO, "maxRadius %f, minRadius %f, maxRadius / minRadius %f\n", maxRadius, minRadius, maxRadius / minRadius);
 	plog(LOG_INFO, "nKernels %d, rowSize %d\n", nKernels, rowSize);
 	def->kernels = malloc(nKernels * sizeof(float *));
 
 	for (int i = 0; i < nKernels; i++) {
 		//float radius = (def->minRadius + i * (((float)def->maxRadius - def->minRadius) / nKernels));
 		float radius = maxRadius / powf(i + 1, def->alpha);
-		plog(LOG_INFO, "i %d, radius %.9f\n", i, radius);
+		//plog(LOG_INFO, "i %d, radius %.9f\n", i, radius);
 		float *kernel = malloc(rowSize * rowSize * sizeof(float));
 		float total = 0.f;
 
@@ -67,16 +67,20 @@ static void generateKernels(DensityEstimationFilter *def, int ss) {
 				} else {
 					kernel[y * rowSize + x] = epanechnikovKernel(mag / radius) / total;
 				}
-				plog(LOG_INFO, "%.5f ", kernel[y * rowSize + x]);
+				//plog(LOG_INFO, "%.5f ", kernel[y * rowSize + x]);
 			}
-			plog(LOG_INFO, "\n");
+			//plog(LOG_INFO, "\n");
 		}
 		def->kernels[i] = kernel;
-		plog(LOG_INFO, "\n\n");
+		//plog(LOG_INFO, "\n\n");
 	}
 	def->nKernels = nKernels;
 }
 
+void filterDensityEstimation(Flame *flame, DensityEstimationFilter *def) {
+
+
+}
 
 /*
 void downSample(Flame *flame, Pixel *down) {
