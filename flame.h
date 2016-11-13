@@ -5,13 +5,14 @@
 #include "xform.h"
 #include "source.h"
 #include "palette.h"
+#include "filter.h"
 
 typedef struct __attribute__ ((packed)) {
 	Colour c;
 	float intensity;
 } Pixel;
 
-typedef struct {
+struct FlameStruct {
 	Xform *xforms;
 	int nXforms;
 	int supersample;
@@ -22,11 +23,13 @@ typedef struct {
 	float scale;
 	float rotate;
 	float vibrancy, gamma, hue;
-	float maxKernelRadius, minKernelRadius, alpha; 
+	//float maxKernelRadius, minKernelRadius, alpha; 
 	Palette *palette;
 	Pixel *pixels;
-} Flame;
+	DensityEstimationFilter def;
+};
 
+typedef struct FlameStruct Flame;
 
 Flame *flameCreate();
 void flameDestroy(Flame *flame);

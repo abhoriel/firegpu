@@ -5,26 +5,29 @@
 #include "flame.h"
 #include "filter.h"
 
-static void generateKernels(DensityEstimationFilter *def, int ss);
+static void generateKernels(Flame *flame);
 static float epanechnikovKernel(float u);
 
-DensityEstimationFilter *filterCreate(float minRadius, float maxRadius, float alpha, int ss) {
+void filterCreate(Flame *flame) {
+	/*
 	DensityEstimationFilter *def = malloc(sizeof(DensityEstimationFilter));
 	if (def == NULL) {
 		return NULL;
 	}
-	def->alpha = alpha;
-	def->minRadius = minRadius;
-	def->maxRadius = maxRadius;
-	generateKernels(def, ss);
-	return def;
+	*/
+	if (flame->def.kernels != NULL) {
+		free(flame->def.kernels);
+		flame->def.kernels = NULL;
+	}
+	generateKernels(flame);
 }
 
-static void generateKernels(DensityEstimationFilter *def, int ss) {
+static void generateKernels(Flame *flame) {
 	//int maxWidthCeil = ceilf(def->maxRadius * ss * 2.f);
 	//int nKernels = (def->maxRadius - def->minRadius) * 4;
-	float maxRadius = def->maxRadius * ss + 1;
-	float minRadius = def->minRadius * ss + 1;
+	DensityEstimationFilter *def = &flame->def;
+	float maxRadius = def->maxRadius * flame->supersample + 1;
+	float minRadius = def->minRadius * flame->supersample + 1;
 	int nKernels = (int)ceilf(powf(maxRadius / minRadius, 1.f / def->alpha));
 	int rowSize = 2 * maxRadius - 1;
 	int halfRowSize = (rowSize - 1) / 2;
@@ -75,33 +78,56 @@ static void generateKernels(DensityEstimationFilter *def, int ss) {
 		//plog(LOG_INFO, "\n\n");
 	}
 	def->nKernels = nKernels;
+	def->rowSize = rowSize;
+	def->halfRowSize = halfRowSize;
 }
 
-void filterDensityEstimation(Flame *flame, DensityEstimationFilter *def) {
+void filterDensityEstimation(Flame *flame) {
+	DensityEstimationFilter *def = &flame->def;
+	assert(def->nKernels > 0);
+	float *filtered = calloc(flame->w * flame->h * flame->supersample * flame->supersample, sizeof(float));
+	
+	for (int y = 0; y < flame->h * flame->supersample; y += flame->supersample) {
+		for (int x = 0; x < flame->w * flame->supersample; x += flame->supersample) {
+			float sum = 0;
+			for (int ssy = 0; ssy < flame->supersample; ssy++) {
+				for (int ssx = 0; ssx < flame->supersample; ssx++) {
+					Pixel *p = &flame->pixels[((y + ssy) * flame->w * flame->supersample) + x + ssx];
+					sum += p->intensity;
+				}
+			}
+			int kernel = floorf(powf(sum, def->alpha));
+			if (kernel >= def->nKernels) {
+				kernel = def->nKernels - 1;
+			}
 
+			for (int ky = 0; ky < def->rowSize; ky++) {
+				for (int kx = 0; kx < def->rowSize; kx++) {
+					int sy = ky - def->halfRowSize;
+					int sx = kx - def->halfRowSize;
 
-}
+					float sample = def->kernels[kernel][ky * def->rowSize + kx];
 
-/*
-void downSample(Flame *flame, Pixel *down) {
-	for (int y = 0; y < flame->h; y++) {
-		for (int x = 0; x < flame->w; x++) {
-			down[y * flame->w + x].c.r = 0;
-			down[y * flame->w + x].c.g = 0;
-			down[y * flame->w + x].intensity = 0;
+					if (((y + sy) < 0) || ((y + sy) >= (flame->h * flame->supersample))) {
+						continue;
+					}
+					if (((x + sx) < 0) || ((x + sx) >= (flame->w * flame->supersample))) {
+						continue;
+					}
+					filtered[(y + sy) * flame->w * flame->supersample + x + sx] += sample;
+				}
+			}
 		}
 	}
 
 	for (int y = 0; y < flame->h * flame->supersample; y++) {
 		for (int x = 0; x < flame->w * flame->supersample; x++) {
-			float density = flame->pixels[y * flame->w * flame->supersample + x].intensity;
-			float width = flame->maxKernelRadius / powf(density, flame->alpha);
-			
+			Pixel *p = &flame->pixels[y * flame->w * flame->supersample + x];
+			p->intensity = filtered[y * flame->w * flame->supersample + x];
 		}
 	}
+	free(filtered);
 }
-*/
-
 
 static float epanechnikovKernel(float u) {
 	return 0.75f * (1.f - (u * u));

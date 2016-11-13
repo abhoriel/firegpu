@@ -14,7 +14,7 @@
 static void initFps();
 static float calculateFps();
 static int buildSource(Flame *flame);
-static int drawFractal(Flame *flame, int w, int h);
+static int drawFractal(Flame *flame, int w, int h, int densityEstimation);
 
 static SDL_Window *window = NULL;
 static SDL_Renderer *renderer = NULL;
@@ -68,6 +68,9 @@ void sdlFini() {
 }
 
 void sdlMain() {
+	typedef enum {NORMAL, DE} Mode;
+
+	Mode mode = NORMAL;
 	int quit = 0;
 	SDL_Event event;
 
@@ -79,7 +82,9 @@ void sdlMain() {
 	int mouseY = 0;
 	int mustRecreateSamplesBuffer = 0;
 	int mustRecreateTexture = 0;
+	int mustRecreateDensityEstimationFilter = 0;
 	int mustRebuildSource = 0;
+	int densityEstimation = 0;
 
 	Flame *flame = flameCreate();
 	flame->supersample = 1;
@@ -122,16 +127,17 @@ void sdlMain() {
 	xform2->coMain.f = 0.265096;
 	xformAddVariation(xform2, 2, 1.0f);	// spherical
 
+	int rightleftPressed = 0;
+	int updownPressed = 0;
 
-	DensityEstimationFilter *def = filterCreate(flame->minKernelRadius, flame->maxKernelRadius, flame->alpha, flame->supersample);
-	(void)def;
+	filterCreate(flame);
 
 	if (buildSource(flame) < 0) {
 		return;
 	}
 
 	while (!quit) {
-		int ret = drawFractal(flame, width, height);
+		int ret = drawFractal(flame, width, height, densityEstimation);
 		if (ret < 0) {
 			quit = 1;
 		}
@@ -140,7 +146,14 @@ void sdlMain() {
 		SDL_UpdateTexture(texture, NULL, pixels, width * sizeof(Uint32));
 		SDL_RenderCopy(renderer, texture, NULL, NULL);
 		SDL_RenderPresent(renderer);
-		
+	
+		const Uint8 *state = SDL_GetKeyboardState(NULL);
+		if (state[SDL_SCANCODE_D]) {
+			mode = DE;
+		} else {
+			mode = NORMAL;
+		}
+
 		while(SDL_PollEvent(&event)) {
 			switch (event.type) {
 				case SDL_QUIT:
@@ -174,6 +187,15 @@ void sdlMain() {
 						case SDLK_RETURN:
 							flameRandomise(flame);
 							mustRebuildSource = 1;
+							break;
+						case SDLK_SPACE:
+							if (mode == DE) {
+								if (densityEstimation) {
+									densityEstimation = 0;
+								} else {
+									densityEstimation = 1;
+								}
+							}
 							break;
 						case SDLK_1:
 							flame->supersample = 1;
@@ -210,20 +232,20 @@ void sdlMain() {
 						case SDLK_r:
 							break;
 						case SDLK_UP:
-							flame->quality *= 5;
-							plog(LOG_INFO, "quality: %d\n", flame->quality);
-							break;
+							updownPressed = 1;
+						break;
 						case SDLK_DOWN:
-							flame->quality /= 5;
-							plog(LOG_INFO, "quality: %d\n", flame->quality);
+							updownPressed = -1;
 							break;
 						case SDLK_RIGHT:
+							rightleftPressed = 1;
+							/*
 							flame->iterations *= 5;
 							plog(LOG_INFO, "iterations: %d\n", flame->iterations);
+							*/
 							break;
 						case SDLK_LEFT:
-							flame->iterations /= 5;
-							plog(LOG_INFO, "iterations: %d\n", flame->iterations);
+							rightleftPressed = -1;
 							break;
 						case SDLK_q:
 							flame->gamma += 0.25f;
@@ -249,7 +271,51 @@ void sdlMain() {
 				}
 			}
 		}
-	
+
+		if (updownPressed != 0) {
+			switch(mode) {
+				case DE:
+					if (updownPressed == 1) {
+						flame->def.alpha += 0.1;
+					} else {
+						flame->def.alpha -= 0.1;	
+					}
+					plog(LOG_INFO, "curve alpha: %f\n", flame->def.alpha);
+					mustRecreateDensityEstimationFilter = 1;
+					break;
+				case NORMAL:
+				default:
+					if (updownPressed == 1) {
+						flame->quality *= 5;
+					} else {
+						flame->quality /= 5;
+					}
+					plog(LOG_INFO, "quality: %d\n", flame->quality);
+						break;
+			}
+			updownPressed = 0;
+		}
+		if (rightleftPressed != 0) {
+			switch(mode) {
+				case DE:
+					flame->def.maxRadius += rightleftPressed;	
+					plog(LOG_INFO, "max kernel radius: %f\n", flame->def.maxRadius);
+					mustRecreateDensityEstimationFilter = 1;
+					break;
+				case NORMAL:
+				default:
+					if (rightleftPressed == 1) {
+						flame->iterations *= 5;
+					} else {
+						flame->iterations /= 5;
+					}
+					plog(LOG_INFO, "iterations: %d\n", flame->iterations);
+					break;
+			}
+			rightleftPressed = 0;
+		}
+
+
 		if (mustRebuildSource) {
 			openclFiniProgram();
 			if (buildSource(flame) < 0) {
@@ -257,6 +323,10 @@ void sdlMain() {
 			}
 			mustRebuildSource = 0;
 		}	
+		if (mustRecreateDensityEstimationFilter) {
+			filterCreate(flame);
+			mustRecreateDensityEstimationFilter = 0;
+		}
 		if (mustRecreateSamplesBuffer) {
 			mustRecreateSamplesBuffer = 0;
 		}
@@ -268,6 +338,7 @@ void sdlMain() {
 			pixels = (Uint32 *)malloc(sizeof(Uint32) * width * height);
 			mustRecreateTexture = 0;
 		}
+
 		
 		if (leftMouseButtonDown || rightMouseButtonDown) {
 			(void)mouseX; (void)mouseY;
@@ -296,7 +367,7 @@ void sdlMain() {
 }
 
 
-static int drawFractal(Flame *flame, int w, int h) {
+static int drawFractal(Flame *flame, int w, int h, int densityEstimation) {
 	// generate the flame, tonemap and downsample
 	int ret;
 
@@ -307,14 +378,21 @@ static int drawFractal(Flame *flame, int w, int h) {
 	}
 
 	clock_t time1 = clock();
+	if (densityEstimation) {
+		filterDensityEstimation(flame);
+	}
+
+	clock_t time2 = clock();
 	flameTonemap(flame);
 	if (flame->supersample > 1) {
 		flameDownsample(flame);
 	}
-	clock_t time2 = clock();
+	clock_t time3 = clock();
 	float genTime = ((float)time1 - time0) / CLOCKS_PER_SEC;
-	float tmTime = ((float)time2 - time1) / CLOCKS_PER_SEC;
-	plog(LOG_INFO, "done. time taken: generation: %.2fs, tonemapping %.2fs\n", genTime, tmTime);
+	float deTime = ((float)time2 - time1) / CLOCKS_PER_SEC;
+
+	float tmTime = ((float)time3 - time2) / CLOCKS_PER_SEC;
+	plog(LOG_INFO, "done. time taken: generation: %.2fs, density estimation %.2fs, tonemapping %.2fs\n", genTime, deTime, tmTime);
 
 	// write the flame into the texture
 	for (int y = 0; y < h; y++) {

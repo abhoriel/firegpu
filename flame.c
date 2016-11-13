@@ -25,9 +25,11 @@ Flame *flameCreate() {
 	flame->nXforms = 0;
 	flame->pixels = NULL;
 	flame->palette = paletteCreate();
-	flame->alpha = 0.4f;
-	flame->maxKernelRadius = 9.0f;
-	flame->minKernelRadius = 0.f;
+	flame->def.alpha = 0.4f;
+	flame->def.maxRadius = 9.0f;
+	flame->def.minRadius = 0.f;
+	flame->def.kernels = NULL;
+	flame->def.nKernels = 0;
 	return flame;
 }
 
@@ -38,6 +40,7 @@ void flameDestroy(Flame *flame) {
 	if (flame->xforms != NULL) {
 		free(flame->xforms);
 	}
+
 	paletteDestroy(flame->palette);
 	if (flame->pixels != NULL) {
 		free(flame->pixels);
@@ -88,8 +91,21 @@ int flameGenerate(Flame *flame) {
 		ret = 0;
 	}
 
-	free(xfd);
 	flame->pixels = pixels;
+	free(xfd);
+
+	// we divide the colours down by the intensity to get the average colour rather than total
+	for (int y = 0; y < (flame->h * flame->supersample); y++) {
+		for (int x = 0; x < (flame->w * flame->supersample); x++) {
+			Pixel *pixel = &flame->pixels[y * flame->w * flame->supersample + x];
+			if (pixel->intensity != 0) {
+				pixel->c.r /= pixel->intensity;
+				pixel->c.g /= pixel->intensity;
+				pixel->c.b /= pixel->intensity;
+			}
+		}
+	}
+	
 	return ret;
 }
 
@@ -226,9 +242,9 @@ void flameTonemap(Flame *flame) {
 			Pixel *pixel = &flame->pixels[y * flame->w * flame->supersample + x];
 			// divide by the intensity as we need the average colours here.
 			if (pixel->intensity != 0) {
-				pixel->c.r /= pixel->intensity;
-				pixel->c.g /= pixel->intensity;
-				pixel->c.b /= pixel->intensity;
+				//pixel->c.r /= pixel->intensity;
+				//pixel->c.g /= pixel->intensity;
+				//pixel->c.b /= pixel->intensity;
 				pixel->intensity = log10f(pixel->intensity);
 				if (pixel->intensity > max) {
 					max = pixel->intensity;
@@ -255,9 +271,6 @@ void flameTonemap(Flame *flame) {
 			if (pixel->c.b > 1.f) {
 				pixel->c.b = 1.f;
 			}
-			/*
-
-			*/
 		}
 	}
 }
