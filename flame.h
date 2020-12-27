@@ -23,7 +23,7 @@ struct FlameStruct {
 	float scale;
 	float rotate;
 	float vibrancy, gamma, hue;
-	//float maxKernelRadius, minKernelRadius, alpha; 
+	//float maxKernelRadius, minKernelRadius, alpha;
 	Palette *palette;
 	Pixel *pixels;
 	DensityEstimationFilter def;
@@ -41,4 +41,3 @@ void flameRandomise(Flame *flame);
 Source *flameGenerateSource(Flame *flame);
 
 #endif
-

@@ -27,13 +27,13 @@ int sdlInit(int w, int h) {
 		plog(LOG_ERROR, "could not initialise sdl: %s\n", SDL_GetError());
 		return -1;
 	}
-	
+
 	window = SDL_CreateWindow("firegpu", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, w, h, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
 	if(window == NULL) {
 		plog(LOG_ERROR, "sdl window could not be created: %s\n", SDL_GetError());
 		return -1;
 	}
-	
+
 	width = w;
 	height = h;
 
@@ -42,7 +42,7 @@ int sdlInit(int w, int h) {
 		plog(LOG_ERROR, "sdl renderer could not be created: %s\n", SDL_GetError());
 		return -1;
 	}
-	
+
 	texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, w, h);
 	if (renderer == NULL) {
 		plog(LOG_ERROR, "sdl renderer could not be created: %s\n", SDL_GetError());
@@ -55,7 +55,7 @@ int sdlInit(int w, int h) {
 		return -1;
 	}
 	memset(pixels, 255, sizeof(Uint32) * w * h);
-		
+
 	return 0;
 }
 
@@ -75,7 +75,7 @@ void sdlMain() {
 	SDL_Event event;
 
 	initFps();
-	
+
 	int leftMouseButtonDown = 0;
 	int rightMouseButtonDown = 0;
 	int mouseX = 0;
@@ -105,7 +105,7 @@ void sdlMain() {
 	xform->colourIndex = 0.0f;
 	xform->opacity = 1.0f;
 	xform->symmetry = 0.0f;
-	xform->coMain.a = 1.0743f; 	
+	xform->coMain.a = 1.0743f;
 	xform->coMain.b = 0.276938f;
 	xform->coMain.c = -0.229114f;
 	xform->coMain.d = -1.13321f;
@@ -119,7 +119,7 @@ void sdlMain() {
 	xform2->colourIndex = 0.5f;
 	xform2->opacity = 1.0f;
 	xform2->symmetry = 0.0f;
-	xform2->coMain.a = -0.08903f; 
+	xform2->coMain.a = -0.08903f;
 	xform2->coMain.b = -0.668048;
 	xform2->coMain.c = 0.624383;
 	xform2->coMain.d = -0.086163;
@@ -146,7 +146,7 @@ void sdlMain() {
 		SDL_UpdateTexture(texture, NULL, pixels, width * sizeof(Uint32));
 		SDL_RenderCopy(renderer, texture, NULL, NULL);
 		SDL_RenderPresent(renderer);
-	
+
 		const Uint8 *state = SDL_GetKeyboardState(NULL);
 		if (state[SDL_SCANCODE_D]) {
 			mode = DE;
@@ -278,7 +278,7 @@ void sdlMain() {
 					if (updownPressed == 1) {
 						flame->def.alpha += 0.1;
 					} else {
-						flame->def.alpha -= 0.1;	
+						flame->def.alpha -= 0.1;
 					}
 					plog(LOG_INFO, "curve alpha: %f\n", flame->def.alpha);
 					mustRecreateDensityEstimationFilter = 1;
@@ -298,7 +298,7 @@ void sdlMain() {
 		if (rightleftPressed != 0) {
 			switch(mode) {
 				case DE:
-					flame->def.maxRadius += rightleftPressed;	
+					flame->def.maxRadius += rightleftPressed;
 					plog(LOG_INFO, "max kernel radius: %f\n", flame->def.maxRadius);
 					mustRecreateDensityEstimationFilter = 1;
 					break;
@@ -322,7 +322,7 @@ void sdlMain() {
 				return;
 			}
 			mustRebuildSource = 0;
-		}	
+		}
 		if (mustRecreateDensityEstimationFilter) {
 			filterCreate(flame);
 			mustRecreateDensityEstimationFilter = 0;
@@ -339,7 +339,7 @@ void sdlMain() {
 			mustRecreateTexture = 0;
 		}
 
-		
+
 		if (leftMouseButtonDown || rightMouseButtonDown) {
 			(void)mouseX; (void)mouseY;
 			/*
@@ -353,15 +353,15 @@ void sdlMain() {
 			}
 			*/
 		}
-		
+
 		//topLeftX = centreX - ((width * scale) / 2);
 		//topLeftY = centreY - ((height * scale) / 2);
-		
+
 		char title[64];
 		sprintf(title, "firegpu (fps: %.1f)", calculateFps());
 		SDL_SetWindowTitle(window, title);
 	}
-	
+
 	openclFiniProgram();
 	flameDestroy(flame);
 }
@@ -421,11 +421,11 @@ void sdlMain() {
 	int quit = 0;
 	SDL_Event event;
 	static float startingScale = 0.010;
-	
+
 	// h has to be a multiple of 64 currently..
 	double scale = startingScale;
 	int nSamples = 1; //scale /= nSamples;
-	
+
 	//double centreX = 0.435396403; double centreY = 0.367981352;
 	double centreX = 0; double centreY = 0;
 	double topLeftX = centreX - ((width * scale) / 2);
@@ -439,7 +439,7 @@ void sdlMain() {
 	}
 
 	initFps();
-	
+
 	int leftMouseButtonDown = 0;
 	int rightMouseButtonDown = 0;
 	int mouseX = 0;
@@ -447,7 +447,7 @@ void sdlMain() {
 	int mustRecreateSamplesBuffer = 0;
 	int mustRecreateTexture = 0;
 	int normalise = 1;
-	
+
 	while (!quit) {
 		int ret = openclExecMandlebrot(width * nSamples, height * nSamples, scale / nSamples, topLeftX, topLeftY, limit, samples);
 		if (ret != 0) {
@@ -460,7 +460,7 @@ void sdlMain() {
 		//SDL_RenderClear(renderer);
 		SDL_RenderCopy(renderer, texture, NULL, NULL);
 		SDL_RenderPresent(renderer);
-		
+
 		while(SDL_PollEvent(&event)) {
 			switch (event.type) {
 				case SDL_QUIT:
@@ -563,7 +563,7 @@ void sdlMain() {
 				}
 			}
 		}
-		
+
 		if (mustRecreateSamplesBuffer) {
 			free(samples);
 			samples = (double *)malloc(sizeof(double) * width * height * nSamples * nSamples);
@@ -577,7 +577,7 @@ void sdlMain() {
 			pixels = (Uint32 *)malloc(sizeof(Uint32) * width * height);
 			mustRecreateTexture = 0;
 		}
-		
+
 		if (leftMouseButtonDown || rightMouseButtonDown) {
 			centreX += ((mouseX - width / 2) * scale) * 0.02;
 			centreY += ((mouseY - height / 2) * scale) * 0.02;
@@ -588,16 +588,16 @@ void sdlMain() {
 				scale /= 0.99;
 			}
 		}
-		
+
 		topLeftX = centreX - ((width * scale) / 2);
 		topLeftY = centreY - ((height * scale) / 2);
-		
+
 		char title[64];
 		sprintf(title, "firegpu (fps: %.1f)", calculateFps());
 		SDL_SetWindowTitle(window, title);
 		//printf("fps %f\n", calculateFps());
 	}
-	
+
 	free(samples);
 }
 
@@ -609,7 +609,7 @@ static void drawFractal(double *samples, int w, int h, int nSamples, int normali
 	} else {
 		downSampled = samples;
 	}
-	
+
 	// we must first get the minimum value in order to normalise
 	// the colours.
 	double min = 1;
@@ -628,7 +628,7 @@ static void drawFractal(double *samples, int w, int h, int nSamples, int normali
 			if (min < 1) {
 				iter = (iter - min) * (1.0 / (1.0 - min));
 			}
-			
+
 			((Uint8 *)pixels)[(w * y * 4) + (x * 4) + 0] = (Uint8)(iter * 255);
 			((Uint8 *)pixels)[(w * y * 4) + (x * 4) + 1] = (Uint8)(iter * 255);
 			((Uint8 *)pixels)[(w * y * 4) + (x * 4) + 2] = (Uint8)(iter * 255);
@@ -637,7 +637,7 @@ static void drawFractal(double *samples, int w, int h, int nSamples, int normali
 			//pixels[(w * y) + (x)] = col.getargb();
 		}
 	}
-	
+
 	if (nSamples > 1) {
 		free(downSampled);
 	}
@@ -736,5 +736,5 @@ static float calculateFps() {
 	framesPerSecond = 1000.f / framesPerSecond;
 
 	return framesPerSecond;
-		
+
 }
